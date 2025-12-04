@@ -1,0 +1,467 @@
+{% extends 'flight/layout.html' %}
+
+{% load static %}
+
+{% block head %}
+    <title>Select Your Seat | Flight</title>
+    <link rel="stylesheet" href="{% static 'css/seat_selection_style.css' %}">
+{% endblock %}
+
+{% block body %}
+    <section class="section section1">
+        <div class="container">
+            <div class="row main-row">
+                <div class="col-8">
+                    <!-- Flight Info Card -->
+                    <div class="ticket-details">
+                        <h5>🛫 Select Your Seat</h5>
+                        <hr>
+                        <div class="row ticket-details-div">
+                            <div class="col-3 airline-name">
+                                <div class="brand">{{ flight.airline }}</div>
+                                <div class="plane-name">{{ flight.plane }}</div>
+                            </div>
+                            <div class="col-3 depart-time">
+                                <div class="time">{{ flight.depart_time|time:'H:i' }}</div>
+                                <div class="place">{{ flight.origin.city }}</div>
+                                <div class="airport">{{ flight.origin.airport }}</div>
+                            </div>
+                            <div class="col-3 time-details">
+                                <div class="duration" data-value="{{ flight.duration }}"></div>
+                            </div>
+                            <div class="col-3 arrival-time">
+                                <div class="time">{{ flight.arrival_time|time:'H:i' }}</div>
+                                <div class="place">{{ flight.destination.city }}</div>
+                                <div class="airport">{{ flight.destination.airport }}</div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="selection-status-div">
+                            <span id="selectedCount">0</span> of
+                            <span id="totalPassengers">1</span> Seat(s) Selected
+                            <span class="selection-pending" id="pendingText">- Selection pending</span>
+                        </div>
+                    </div>
+
+                    <!-- Notice -->
+                    <div class="notice-box">
+                        <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-info-circle" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                            <path d="M8.93 6.588l-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588z"/>
+                            <circle cx="8" cy="4.5" r="1"/>
+                        </svg>
+                        Less than 48 hours left to departure. Pre-book your preferred seat now before they run out!
+                    </div>
+
+                    <!-- Seat Map -->
+                    <div class="seat-map-card">
+                        <h5>Seat Map</h5>
+                        <hr>
+                        <div class="seat-map-wrapper">
+                            <div class="airplane-visual">
+                                <div class="cockpit-visual"></div>
+                                <div class="cabin-section">
+                                    <div class="exit-indicators">
+                                        <span class="exit-label-left">⚠ EXIT</span>
+                                        <span class="exit-label-right">EXIT ⚠</span>
+                                    </div>
+
+                                    <div class="column-headers">
+                                        <div class="row-num-placeholder"></div>
+                                        <div class="left-cols">
+                                            <span>A</span>
+                                            <span>B</span>
+                                            <span>C</span>
+                                        </div>
+                                        <div class="aisle-space"></div>
+                                        <div class="right-cols">
+                                            <span>D</span>
+                                            <span>E</span>
+                                            <span>F</span>
+                                        </div>
+                                        <div class="row-num-placeholder"></div>
+                                    </div>
+
+                                    <div class="seat-rows-container" id="seatRows">
+                                        <!-- Seats will be dynamically loaded here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="legend-card">
+                        <h5>Seat Legend</h5>
+                        <hr>
+                        <div class="legend-wrapper">
+                            <div class="legend-item">
+                                <div class="legend-seat available"></div>
+                                <span>Available</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-seat selected"></div>
+                                <span>Selected</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-seat booked"></div>
+                                <span>Booked</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-seat premium"></div>
+                                <span>Premium (₹700+)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="action-buttons-div">
+                        <button type="button" class="btn btn-outline-secondary" onclick="clearSelection()">
+                            Clear Selection
+                        </button>
+                        <button type="button" class="btn btn-primary btn-danger" id="confirmBtn" onclick="confirmSeats()" disabled>
+                            Confirm & Continue
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-4">
+                    <!-- Price Summary -->
+                    <div class="price-details" id="priceSummary" style="display: none;">
+                        <h5>Seat Selection Summary</h5>
+                        <hr>
+                        <div class="row selected-seats-list" id="selectedSeatsList">
+                            <!-- Selected seats will be listed here -->
+                        </div>
+                        <hr>
+                        <div class="total-fare">
+                            <div class="total-fare-label">Total Seat Charges:</div>
+                            <div class="total-fare-value">₹ <span id="totalPrice">0</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Seat Class Info -->
+                    <div class="coupon-code">
+                        <h5>Class Information</h5>
+                        <hr>
+                        <div class="class-info-content">
+                            <div class="class-info-item">
+                                <strong>Seat Class:</strong> {{ seat_class|title }}
+                            </div>
+                            <div class="class-info-item">
+                                <strong>Flight:</strong> {{ flight.airline }} - {{ flight.plane }}
+                            </div>
+                            <div class="class-info-item">
+                                <strong>Route:</strong> {{ flight.origin.code }} → {{ flight.destination.code }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner-border text-danger" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast-notification" id="notification"></div>
+
+    <script type="text/javascript">
+        let selectedSeats = [];
+        let seatData = {};
+        const flightId = {{ flight.id }};
+        const seatClass = '{{ seat_class }}';
+
+        // Initialize duration display (reuse from book.js pattern)
+        document.querySelectorAll('.duration').forEach(function(el) {
+            const value = el.dataset.value;
+            if (value) {
+                const hours = Math.floor(value / 60);
+                const mins = value % 60;
+                el.textContent = hours + 'h ' + mins + 'm';
+            }
+        });
+
+        // Load seats on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSeats();
+        });
+
+        async function loadSeats() {
+            showLoading(true);
+            try {
+                const response = await fetch(`/api/seats/available?flight_id=${flightId}&seat_class=${seatClass}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    renderSeats(data.seats);
+                } else {
+                    showNotification('Error loading seats: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showNotification('Failed to load seats', 'error');
+            }
+            showLoading(false);
+        }
+
+        function renderSeats(seats) {
+            seatData = {};
+            seats.forEach(seat => {
+                seatData[seat.id] = seat;
+            });
+
+            const seatRows = document.getElementById('seatRows');
+            seatRows.innerHTML = '';
+
+            // Organize seats by row
+            const rowMap = {};
+            seats.forEach(seat => {
+                const row = seat.number.match(/\d+/)[0];
+                if (!rowMap[row]) {
+                    rowMap[row] = {};
+                }
+                const col = seat.number.match(/[A-Z]/)[0];
+                rowMap[row][col] = seat;
+            });
+
+            // Render rows
+            const sortedRows = Object.keys(rowMap).sort((a, b) => parseInt(a) - parseInt(b));
+
+            sortedRows.forEach(rowNum => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'seat-row';
+
+                // Row number left
+                const rowLabelLeft = document.createElement('div');
+                rowLabelLeft.className = 'row-number';
+                rowLabelLeft.textContent = rowNum;
+                rowDiv.appendChild(rowLabelLeft);
+
+                // Left seats (A, B, C)
+                const leftGroup = document.createElement('div');
+                leftGroup.className = 'seat-group';
+                ['A', 'B', 'C'].forEach(col => {
+                    if (rowMap[rowNum][col]) {
+                        leftGroup.appendChild(createSeatElement(rowMap[rowNum][col]));
+                    }
+                });
+                rowDiv.appendChild(leftGroup);
+
+                // Aisle
+                const aisle = document.createElement('div');
+                aisle.className = 'aisle-space';
+                rowDiv.appendChild(aisle);
+
+                // Right seats (D, E, F)
+                const rightGroup = document.createElement('div');
+                rightGroup.className = 'seat-group';
+                ['D', 'E', 'F'].forEach(col => {
+                    if (rowMap[rowNum][col]) {
+                        rightGroup.appendChild(createSeatElement(rowMap[rowNum][col]));
+                    }
+                });
+                rowDiv.appendChild(rightGroup);
+
+                // Row number right
+                const rowLabelRight = document.createElement('div');
+                rowLabelRight.className = 'row-number';
+                rowLabelRight.textContent = rowNum;
+                rowDiv.appendChild(rowLabelRight);
+
+                seatRows.appendChild(rowDiv);
+            });
+        }
+
+        function createSeatElement(seat) {
+            const seatDiv = document.createElement('div');
+            seatDiv.className = 'seat ' + seat.status;
+            seatDiv.dataset.seatId = seat.id;
+            seatDiv.textContent = seat.number;
+
+            if (seat.status === 'available') {
+                seatDiv.onclick = () => toggleSeat(seat.id);
+            }
+
+            return seatDiv;
+        }
+
+        async function toggleSeat(seatId) {
+            const index = selectedSeats.indexOf(seatId);
+
+            if (index > -1) {
+                // Deselect
+                selectedSeats.splice(index, 1);
+                document.querySelector(`[data-seat-id="${seatId}"]`).classList.remove('selected');
+
+                // Release reservation
+                await releaseSeat(seatId);
+            } else {
+                // Select
+                selectedSeats.push(seatId);
+                document.querySelector(`[data-seat-id="${seatId}"]`).classList.add('selected');
+
+                // Reserve seat
+                await reserveSeat(seatId);
+            }
+
+            updatePriceSummary();
+            updateConfirmButton();
+        }
+
+        async function reserveSeat(seatId) {
+            try {
+                const response = await fetch('/api/seats/reserve', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ seat_id: seatId })
+                });
+
+                const data = await response.json();
+                if (!data.success) {
+                    showNotification('Failed to reserve seat: ' + data.error, 'error');
+                    // Remove from selection if reservation failed
+                    const index = selectedSeats.indexOf(seatId);
+                    if (index > -1) {
+                        selectedSeats.splice(index, 1);
+                        document.querySelector(`[data-seat-id="${seatId}"]`).classList.remove('selected');
+                    }
+                }
+            } catch (error) {
+                showNotification('Failed to reserve seat', 'error');
+            }
+        }
+
+        async function releaseSeat(seatId) {
+            try {
+                await fetch('/api/seats/release', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ seat_id: seatId })
+                });
+            } catch (error) {
+                console.error('Failed to release seat:', error);
+            }
+        }
+
+        function updatePriceSummary() {
+            const count = selectedSeats.length;
+            document.getElementById('selectedCount').textContent = count;
+
+            const seatsList = document.getElementById('selectedSeatsList');
+            seatsList.innerHTML = '';
+
+            if (count > 0) {
+                let totalPrice = 0;
+                selectedSeats.forEach(seatId => {
+                    if (seatData[seatId]) {
+                        const seat = seatData[seatId];
+                        totalPrice += seat.price;
+                        
+                        const seatItem = document.createElement('div');
+                        seatItem.className = 'selected-seat-item';
+                        seatItem.innerHTML = `
+                            <span class="seat-number">Seat ${seat.number}</span>
+                            <span class="seat-price">₹ ${seat.price}</span>
+                        `;
+                        seatsList.appendChild(seatItem);
+                    }
+                });
+
+                document.getElementById('totalPrice').textContent = totalPrice.toFixed(2);
+                document.getElementById('priceSummary').style.display = 'block';
+                document.getElementById('pendingText').style.display = 'none';
+            } else {
+                document.getElementById('priceSummary').style.display = 'none';
+                document.getElementById('pendingText').style.display = 'inline';
+            }
+        }
+
+        function updateConfirmButton() {
+            const confirmBtn = document.getElementById('confirmBtn');
+            confirmBtn.disabled = selectedSeats.length === 0;
+        }
+
+        function clearSelection() {
+            selectedSeats.forEach(seatId => {
+                document.querySelector(`[data-seat-id="${seatId}"]`).classList.remove('selected');
+                releaseSeat(seatId);
+            });
+            selectedSeats = [];
+            updatePriceSummary();
+            updateConfirmButton();
+            showNotification('Selection cleared', 'success');
+        }
+
+        async function confirmSeats() {
+            if (selectedSeats.length === 0) {
+                showNotification('Please select at least one seat', 'error');
+                return;
+            }
+
+            showLoading(true);
+
+            try {
+                // Store selected seats in session storage for the booking page
+                sessionStorage.setItem('selectedSeats', JSON.stringify(selectedSeats));
+                
+                showNotification('Seats confirmed! Proceeding to booking...', 'success');
+                
+                // Build redirect URL with parameters
+                const params = new URLSearchParams({
+                    flight1Id: flightId,
+                    flight1Date: '{{ depart_date }}',
+                    seatClass: '{{ seat_class|title }}',
+                    selectedSeats: selectedSeats.join(',')
+                });
+                
+                {% if round_trip and flight2_id %}
+                params.append('flight2Id', '{{ flight2_id }}');
+                params.append('flight2Date', '{{ date2 }}');
+                {% endif %}
+                
+                setTimeout(() => {
+                    // Redirect to review/booking page
+                    window.location.href = '/review?' + params.toString();
+                }, 1000);
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+                showLoading(false);
+            }
+        }
+
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            if (show) {
+                overlay.classList.add('active');
+            } else {
+                overlay.classList.remove('active');
+            }
+        }
+
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = 'toast-notification ' + type + ' show';
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Auto-refresh seats every 30 seconds
+        setInterval(() => {
+            if (selectedSeats.length === 0) {
+                loadSeats();
+            }
+        }, 30000);
+    </script>
+{% endblock %}

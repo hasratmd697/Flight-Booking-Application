@@ -1,0 +1,140 @@
+# Flight Booking Application Documentation
+
+## 1. Project Overview
+
+This is a flight booking web application built with Django. It allows users to search for flights, book one-way or round-trip tickets, view their bookings, and download tickets as PDFs. This project was developed as the capstone project for the Infosys Springboard Internship.
+
+## 2. Features
+
+-   **User Management**: Users can create an account, log in, and log out.
+-   **Flight Search**: Search for one-way or round-trip flights between various destinations.
+-   **Booking**: Book flights for one or more passengers.
+-   **Booking Management**: View a list of all past and upcoming bookings.
+-   **Ticket Cancellation**: Cancel a booked ticket.
+-   **E-Ticket**: Download a PDF of the flight ticket.
+-   **Responsive UI**: The user interface is designed to be responsive and work on different screen sizes.
+-   **Dynamic Search**: "As-you-type" search suggestions for airports.
+
+## 3. File-by-File Documentation
+
+### 3.1. `main.py`
+
+This is the main entry point for the Django application. It's responsible for executing administrative tasks and running the development server. It sets the `DJANGO_SETTINGS_MODULE` environment variable to point to the project's settings file.
+
+### 3.2. `capstone/`
+
+This is the main Django project directory.
+
+#### 3.2.1. `capstone/settings.py`
+
+This file contains the configuration for the Django project. Key settings include:
+
+-   `SECRET_KEY`: A secret key for the Django project.
+-   `DEBUG`: Set to `True` for development, which provides detailed error pages.
+-   `ALLOWED_HOSTS`: A list of allowed hostnames for the application.
+-   `INSTALLED_APPS`: A list of all Django applications that are activated for this project, including `django.contrib.admin`, `django.contrib.auth`, and the custom `flight` app.
+-   `MIDDLEWARE`: A list of middleware classes that process requests and responses.
+-   `ROOT_URLCONF`: The path to the root URL configuration file (`capstone.urls`).
+-   `DATABASES`: The database configuration. This project uses SQLite.
+-   `AUTH_PASSWORD_VALIDATORS`: A list of validators for user passwords.
+-   `STATIC_URL` and `STATIC_ROOT`: Configuration for serving static files.
+-   `AUTH_USER_MODEL`: Specifies the custom `User` model in the `flight` app as the authentication model.
+
+#### 3.2.2. `capstone/urls.py`
+
+This is the root URL configuration for the project. It defines the main URL patterns:
+
+-   `/admin/`: The URL for the Django admin site.
+-   `/`: Includes all URLs from the `flight` application's `urls.py` file.
+-   `/favicon.ico`: A redirect for the site's favicon.
+
+#### 3.2.3. `capstone/utils.py`
+
+This file contains utility functions used throughout the project:
+
+-   `render_to_pdf(template_src, context_dict)`: Renders a given Django template to a PDF document using the `xhtml2pdf` library.
+-   `createticket(...)`: Creates a new `Ticket` object with the provided details, including user, passengers, flight information, and fare.
+
+#### 3.2.4. `capstone/asgi.py` and `capstone/wsgi.py`
+
+These files are entry points for ASGI and WSGI compatible web servers to serve the application.
+
+### 3.3. `flight/`
+
+This is the main Django application for the flight booking functionality.
+
+#### 3.3.1. `flight/models.py`
+
+This file defines the database models for the application:
+
+-   `User`: A custom user model that extends `AbstractUser`.
+-   `Place`: Represents a location with a city, airport name, IATA code, and country.
+-   `Week`: A simple model to store the days of the week.
+-   `Flight`: Represents a flight with an origin, destination, departure time, duration, and fares for different classes (economy, business, first).
+-   `Passenger`: Represents a passenger with their first name, last name, and gender.
+-   `Ticket`: The main model for a booking. It links a `User` to one or more `Passenger`s and a `Flight`. It also stores the booking reference number, fare details, and the status of the ticket (Pending, Confirmed, or Cancelled).
+
+#### 3.3.2. `flight/views.py`
+
+This file contains the view functions that handle the application's logic:
+
+-   `index(request)`: Renders the home page with the flight search form.
+-   `login_view(request)`, `register_view(request)`, `logout_view(request)`: Handle user authentication.
+-   `query(request, q)`: An API endpoint that returns a list of places matching a search query, used for the "as-you-type" search feature.
+-   `flight(request)`: Displays the flight search results based on the user's query.
+-   `review(request)`: Shows a summary of the selected flight(s) before booking.
+-   `book(request)`: Handles the creation of a booking and its associated passengers.
+-   `payment(request)`: A view that simulates the payment process and confirms the booking.
+-   `ticket_data(request, ref)`: An API endpoint that returns the details of a ticket in JSON format.
+-   `get_ticket(request)`: Generates and returns a PDF ticket for a given reference number.
+-   `bookings(request)`: Displays a list of all bookings made by the currently logged-in user.
+-   `cancel_ticket(request)`: Handles the logic for canceling a ticket.
+-   `resume_booking(request)`: Allows a user to resume a pending booking.
+-   Static pages: `contact`, `privacy_policy`, `terms_and_conditions`, `about_us`.
+
+#### 3.3.3. `flight/urls.py`
+
+This file defines the URL patterns for the `flight` application, mapping each URL to a specific view function in `views.py`.
+
+#### 3.3.4. `flight/admin.py`
+
+This file registers the application's models with the Django admin site, making them manageable through the admin interface.
+
+#### 3.3.5. `flight/apps.py`
+
+This file contains the configuration for the `flight` application.
+
+#### 3.3.6. `flight/constant.py`
+
+This file defines a constant `FEE` which is used as a surcharge for ticket bookings.
+
+#### 3.3.7. `flight/utils.py`
+
+This file contains utility functions for populating the database with initial data from CSV files. These functions are called when the application starts if the database is empty.
+
+-   `createWeekDays()`: Populates the `Week` model with the days of the week.
+-   `addPlaces()`: Reads `airports.csv` and populates the `Place` model.
+-   `addDomesticFlights()`: Reads `domestic_flights.csv` and populates the `Flight` model.
+-   `addInternationalFlights()`: Reads `international_flights.csv` and populates the `Flight` model.
+
+#### 3.3.8. `flight/migrations/`
+
+This directory contains the database migration files generated by Django. The `0001_initial.py` file represents the initial database schema for the `flight` application.
+
+### 3.4. `flight/templates/`
+
+This directory contains all the HTML templates for the application. Each template corresponds to a specific page or component of the user interface.
+
+### 3.5. `flight/static/`
+
+This directory contains the static files for the application, including CSS for styling, JavaScript for client-side interactivity, and images.
+
+### 3.6. Other Files
+
+-   `requirements.txt`: Lists all the Python packages required to run the project.
+-   `README.md`: The project's README file, providing a high-level overview and installation instructions.
+-   `db.sqlite3`: The SQLite database file.
+-   `.gitignore`: Specifies which files and directories should be ignored by Git.
+-   `LICENSE`: The license for the project.
+-   `Procfile`: A file for Heroku deployment, specifying the command to run the application.
+-   `runtime.txt`: Specifies the Python runtime version for Heroku.

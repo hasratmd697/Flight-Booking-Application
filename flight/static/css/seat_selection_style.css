@@ -1,0 +1,624 @@
+/* Seat Selection Page Styles - Consistent with project design */
+
+.section1 {
+  background-color: rgba(10, 0, 0, 0.05);
+}
+
+.col-8 > div,
+.col-4 > div {
+  background-color: #fff;
+}
+
+.col-8 {
+  padding: 15px;
+}
+
+.col-4 {
+  padding: 15px;
+}
+
+/* =========================
+   Ticket Details Card
+   ========================= */
+.ticket-details {
+  margin-top: 15px;
+  margin-bottom: 15px;
+  padding: 13px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  background-color: #fff;
+}
+
+.ticket-details hr {
+  margin: 0px -13px;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.1);
+}
+
+.ticket-details-div {
+  margin: 13px 10px;
+}
+
+.brand {
+  font-weight: 600;
+}
+
+.plane-name {
+  color: #4a4a4a;
+  font-size: 0.8em;
+}
+
+.time {
+  font-size: 1.4em;
+  font-weight: 600;
+}
+
+.time-details > div {
+  text-align: center;
+}
+
+.time-details {
+  margin-right: 25px;
+  margin-left: -25px;
+}
+
+.duration {
+  border-bottom: 0.7px solid #9f9f9f;
+  font-size: 0.9em;
+  color: #454545;
+}
+
+.place {
+  color: #4a4a4a;
+  font-size: 0.8em;
+  font-weight: 600;
+}
+
+.airport {
+  color: #4a4a4a;
+  font-size: 0.8em;
+}
+
+.selection-status-div {
+  padding: 13px 10px 0;
+  font-weight: 500;
+  color: #454545;
+}
+
+.selection-pending {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+/* =========================
+   Notice Box
+   ========================= */
+.notice-box {
+  margin: 15px 0;
+  padding: 15px 20px;
+  border-radius: 8px;
+  background: linear-gradient(
+    135deg,
+    rgba(220, 53, 69, 0.08),
+    rgba(220, 53, 69, 0.03)
+  );
+  border-left: 4px solid #dc3545;
+  color: #721c24;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.08);
+}
+
+.notice-box svg {
+  flex-shrink: 0;
+}
+
+/* =========================
+   Seat Map Card
+   ========================= */
+.seat-map-card,
+.legend-card {
+  margin-top: 15px;
+  margin-bottom: 15px;
+  padding: 13px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  background-color: #fff;
+}
+
+.seat-map-card hr,
+.legend-card hr {
+  margin: 0px -13px;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.1);
+}
+
+.seat-map-wrapper {
+  padding: 20px 0;
+  background: linear-gradient(
+    180deg,
+    rgba(220, 53, 69, 0.05) 0%,
+    rgba(255, 242, 242, 1) 100%
+  );
+  border-radius: 12px;
+  margin-top: 13px;
+}
+
+.airplane-visual {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.cockpit-visual {
+  width: 180px;
+  height: 100px;
+  background: white;
+  border-radius: 50% 50% 0 0;
+  margin: 0 auto 15px;
+  position: relative;
+  box-shadow: inset 0 -8px 15px rgba(0, 0, 0, 0.08);
+}
+
+.cockpit-visual::before {
+  content: "";
+  position: absolute;
+  top: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 35px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+}
+
+.cabin-section {
+  background: white;
+  border-radius: 10px;
+  padding: 20px 15px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+}
+
+.exit-indicators {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  padding: 0 10px;
+}
+
+.exit-label-left,
+.exit-label-right {
+  color: #dc3545;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+/* Column Headers */
+.column-headers {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.column-headers .left-cols,
+.column-headers .right-cols {
+  display: flex;
+  gap: 6px;
+}
+
+.column-headers span {
+  width: 38px;
+  text-align: center;
+  font-weight: 600;
+  color: #6c757d;
+  font-size: 13px;
+}
+
+.row-num-placeholder {
+  width: 25px;
+}
+
+.aisle-space {
+  width: 30px;
+}
+
+/* Seat Rows */
+.seat-rows-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.seat-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.row-number {
+  width: 25px;
+  text-align: center;
+  font-weight: 600;
+  color: #6c757d;
+  font-size: 12px;
+}
+
+.seat-group {
+  display: flex;
+  gap: 6px;
+}
+
+/* =========================
+   Individual Seats
+   ========================= */
+.seat {
+  width: 38px;
+  height: 38px;
+  border-radius: 6px 6px 10px 10px;
+  border: 2px solid #28a745;
+  background: linear-gradient(180deg, #28a745 0%, #1e7e34 100%);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+}
+
+.seat:hover:not(.booked) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.seat::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 55%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 1px;
+}
+
+.seat.available {
+  background: linear-gradient(180deg, #28a745 0%, #1e7e34 100%);
+  border-color: #28a745;
+}
+
+.seat.booked {
+  background: linear-gradient(180deg, #e9ecef 0%, #ced4da 100%);
+  border-color: #adb5bd;
+  cursor: not-allowed;
+  color: #6c757d;
+}
+
+.seat.reserved {
+  background: linear-gradient(180deg, #ffc107 0%, #e0a800 100%);
+  border-color: #ffc107;
+}
+
+.seat.selected {
+  background: linear-gradient(180deg, #dc3545 0%, #c82333 100%);
+  border-color: #dc3545;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+}
+
+.seat.premium {
+  background: linear-gradient(180deg, #6f42c1 0%, #5a32a3 100%);
+  border-color: #6f42c1;
+}
+
+/* =========================
+   Legend Card
+   ========================= */
+.legend-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  padding: 13px 0 0;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-seat {
+  width: 28px;
+  height: 28px;
+  border-radius: 5px 5px 8px 8px;
+  border: 2px solid;
+}
+
+.legend-seat.available {
+  background: linear-gradient(180deg, #28a745 0%, #1e7e34 100%);
+  border-color: #28a745;
+}
+
+.legend-seat.selected {
+  background: linear-gradient(180deg, #dc3545 0%, #c82333 100%);
+  border-color: #dc3545;
+}
+
+.legend-seat.booked {
+  background: linear-gradient(180deg, #e9ecef 0%, #ced4da 100%);
+  border-color: #adb5bd;
+}
+
+.legend-seat.premium {
+  background: linear-gradient(180deg, #6f42c1 0%, #5a32a3 100%);
+  border-color: #6f42c1;
+}
+
+.legend-item span {
+  font-size: 13px;
+  color: #495057;
+}
+
+/* =========================
+   Action Buttons
+   ========================= */
+.action-buttons-div {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin: 20px 0;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+}
+
+.action-buttons-div .btn {
+  padding: 12px 35px;
+  font-weight: 600;
+  border-radius: 25px;
+  transition: all 0.2s ease;
+}
+
+.action-buttons-div .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =========================
+   Price Details (Right Column)
+   ========================= */
+.price-details,
+.coupon-code {
+  margin-top: 15px;
+  margin-bottom: 15px;
+  padding: 13px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  background-color: #fff;
+}
+
+.price-details hr,
+.coupon-code hr {
+  margin: 0px -13px;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.1);
+}
+
+.selected-seats-list {
+  padding: 13px 0;
+  margin: 0;
+}
+
+.selected-seat-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 10px;
+  margin-bottom: 5px;
+  background: rgba(220, 53, 69, 0.05);
+  border-radius: 5px;
+}
+
+.seat-number {
+  font-weight: 500;
+}
+
+.seat-price {
+  font-weight: 600;
+  color: #dc3545;
+}
+
+.total-fare {
+  font-size: 1.2em;
+  padding-top: 13px;
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+}
+
+.total-fare-value {
+  background: -webkit-linear-gradient(right, crimson, #b8017b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Class Info */
+.class-info-content {
+  padding: 13px 0 0;
+}
+
+.class-info-item {
+  padding: 8px 10px;
+  margin-bottom: 5px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.class-info-item strong {
+  color: #495057;
+}
+
+/* =========================
+   Loading Overlay
+   ========================= */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loading-overlay.active {
+  display: flex;
+}
+
+/* =========================
+   Toast Notification
+   ========================= */
+.toast-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 25px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transform: translateX(400px);
+  transition: transform 0.3s ease;
+  z-index: 10000;
+}
+
+.toast-notification.show {
+  transform: translateX(0);
+}
+
+.toast-notification.success {
+  background: #28a745;
+}
+
+.toast-notification.error {
+  background: #dc3545;
+}
+
+/* =========================
+   Responsive Styles
+   ========================= */
+@media (max-width: 992px) {
+  .main-row {
+    flex-direction: column;
+  }
+
+  .main-row > .col-8,
+  .main-row > .col-4 {
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
+}
+
+@media (max-width: 576px) {
+  .section {
+    padding: 15px 10px;
+  }
+
+  .seat {
+    width: 32px;
+    height: 32px;
+    font-size: 9px;
+  }
+
+  .column-headers span {
+    width: 32px;
+    font-size: 11px;
+  }
+
+  .airplane-visual {
+    max-width: 100%;
+  }
+
+  .action-buttons-div {
+    flex-direction: column;
+  }
+
+  .action-buttons-div .btn {
+    width: 100%;
+  }
+
+  .legend-wrapper {
+    justify-content: center;
+  }
+
+  .ticket-details-div > .airline-name {
+    display: none;
+  }
+
+  .ticket-details-div .depart-time,
+  .ticket-details-div .arrival-time {
+    max-width: 36%;
+    flex: 0 0 36%;
+  }
+
+  .ticket-details-div .time-details {
+    margin-left: 0;
+    margin-right: 0;
+    max-width: 28%;
+    flex: 0 0 28%;
+  }
+}
+
+@media (max-width: 376px) {
+  .container-fluid {
+    background-color: rgba(10, 0, 0, 0.05);
+  }
+
+  .section1 {
+    background-color: transparent;
+  }
+
+  .section {
+    padding-top: 0;
+  }
+
+  .main-row {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .main-row > div {
+    padding: 0;
+  }
+
+  .main-row > div > div {
+    border-radius: 0;
+  }
+
+  .seat {
+    width: 28px;
+    height: 28px;
+    font-size: 8px;
+  }
+
+  .column-headers span {
+    width: 28px;
+  }
+
+  .cockpit-visual {
+    width: 140px;
+    height: 80px;
+  }
+}
