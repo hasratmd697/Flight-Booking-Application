@@ -1,0 +1,86 @@
+{% extends 'flight/layout.html' %}
+{% load static %}
+
+{% block title %}Error - Flight Booking{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        {{ error_title|default:"Error" }}
+                    </h4>
+                </div>
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="fas fa-plane-slash text-danger" style="font-size: 4rem;"></i>
+                    </div>
+                    <p class="lead text-muted mb-4">
+                        {{ error_message|default:"An unexpected error occurred." }}
+                    </p>
+                    
+                    {% if show_search %}
+                    <div class="mt-4">
+                        <h5 class="text-muted mb-3">Common Airport Codes</h5>
+                        <div class="row justify-content-center">
+                            <div class="col-md-6">
+                                <table class="table table-sm table-striped">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>City</th>
+                                            <th>Airport Code</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>New York (JFK)</td><td><strong>JFK</strong></td></tr>
+                                        <tr><td>New York (LaGuardia)</td><td><strong>LGA</strong></td></tr>
+                                        <tr><td>Los Angeles</td><td><strong>LAX</strong></td></tr>
+                                        <tr><td>London (Heathrow)</td><td><strong>LHR</strong></td></tr>
+                                        <tr><td>Tokyo (Narita)</td><td><strong>NRT</strong></td></tr>
+                                        <tr><td>Tokyo (Haneda)</td><td><strong>HND</strong></td></tr>
+                                        <tr><td>Delhi</td><td><strong>DEL</strong></td></tr>
+                                        <tr><td>Mumbai</td><td><strong>BOM</strong></td></tr>
+                                        <tr><td>Paris</td><td><strong>CDG</strong></td></tr>
+                                        <tr><td>Dubai</td><td><strong>DXB</strong></td></tr>
+                                        <tr><td>Singapore</td><td><strong>SIN</strong></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        <a href="{% url 'index' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-search me-2"></i>Search Again
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    .card-header {
+        padding: 1.5rem;
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 12px 30px;
+        border-radius: 8px;
+    }
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+</style>
+{% endblock %}

@@ -160,17 +160,54 @@ def flight(request):
     departdate = request.GET.get('DepartDate')
     depart_date = datetime.strptime(departdate, "%Y-%m-%d")
     return_date = None
+    seat = request.GET.get('SeatClass')
+    
+    # Validate origin and destination codes
+    try:
+        origin = Place.objects.get(code=o_place.upper())
+    except Place.DoesNotExist:
+        # Suggest alternatives for common city codes
+        suggestions = {
+            'NYC': 'JFK, LGA, or EWR (New York area airports)',
+            'TOKYO': 'NRT or HND (Tokyo airports)',
+            'LONDON': 'LHR, LGW, or STN (London airports)',
+        }
+        suggestion = suggestions.get(o_place.upper(), '')
+        error_msg = f"Airport code '{o_place.upper()}' not found."
+        if suggestion:
+            error_msg += f" Did you mean {suggestion}?"
+        return render(request, 'flight/error.html', {
+            'error_title': 'Invalid Origin Airport',
+            'error_message': error_msg,
+            'show_search': True
+        })
+    
+    try:
+        destination = Place.objects.get(code=d_place.upper())
+    except Place.DoesNotExist:
+        suggestions = {
+            'NYC': 'JFK, LGA, or EWR (New York area airports)',
+            'TOKYO': 'NRT or HND (Tokyo airports)',
+            'LONDON': 'LHR, LGW, or STN (London airports)',
+        }
+        suggestion = suggestions.get(d_place.upper(), '')
+        error_msg = f"Airport code '{d_place.upper()}' not found."
+        if suggestion:
+            error_msg += f" Did you mean {suggestion}?"
+        return render(request, 'flight/error.html', {
+            'error_title': 'Invalid Destination Airport',
+            'error_message': error_msg,
+            'show_search': True
+        })
+    
     if trip_type == '2':
         returndate = request.GET.get('ReturnDate')
         return_date = datetime.strptime(returndate, "%Y-%m-%d")
         flightday2 = Week.objects.get(number=return_date.weekday()) ##
-        origin2 = Place.objects.get(code=d_place.upper())   ##
-        destination2 = Place.objects.get(code=o_place.upper())  ##
-    seat = request.GET.get('SeatClass')
+        origin2 = destination   ##
+        destination2 = origin  ##
 
     flightday = Week.objects.get(number=depart_date.weekday())
-    destination = Place.objects.get(code=d_place.upper())
-    origin = Place.objects.get(code=o_place.upper())
     if seat == 'economy':
         flights = Flight.objects.filter(depart_day=flightday,origin=origin,destination=destination).exclude(economy_fare=0).order_by('economy_fare')
         try:
