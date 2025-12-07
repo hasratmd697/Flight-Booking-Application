@@ -10,12 +10,19 @@ def get_number_of_lines(file):
     return i + 1
 
 def createWeekDays():
+    """Create week days if they don't already exist."""
     days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
-    for i,day in enumerate(days):
-        Week.objects.create(number=i, name=day)
+    for i, day in enumerate(days):
+        Week.objects.get_or_create(number=i, defaults={'name': day})
+    print("Week days configured.")
 
 def addPlaces():
-    file = open("./Data/airports.csv", "r")
+    """Add places from airports.csv if they don't already exist."""
+    try:
+        file = open("./Data/airports.csv", "r")
+    except FileNotFoundError:
+        print("airports.csv not found, skipping...")
+        return
     print("Adding Airports...")
     total = get_number_of_lines("./Data/airports.csv")
     for i, line in tqdm(enumerate(file), total=total):
@@ -27,7 +34,10 @@ def addPlaces():
         code = data[2].strip()
         country = data[3].strip()
         try:
-            Place.objects.create(city=city, airport=airport, code=code, country=country)
+            Place.objects.get_or_create(
+                code=code,
+                defaults={'city': city, 'airport': airport, 'country': country}
+            )
         except Exception as e:
             continue
     print("Done.\n")

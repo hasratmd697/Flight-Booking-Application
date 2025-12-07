@@ -5,11 +5,20 @@ from django.template.loader import get_template
 from flight.models import *
 import secrets
 from datetime import datetime, timedelta
-from xhtml2pdf import pisa
+
+# PDF generation is optional - disabled for cloud deployment
+try:
+    from xhtml2pdf import pisa
+    PDF_ENABLED = True
+except ImportError:
+    PDF_ENABLED = False
+    pisa = None
 
 from flight.constant import FEE
 
 def render_to_pdf(template_src, context_dict={}):
+    if not PDF_ENABLED:
+        return HttpResponse("PDF generation is not available in this deployment.", status=503)
     template = get_template(template_src)
     html  = template.render(context_dict)
     result = BytesIO()
