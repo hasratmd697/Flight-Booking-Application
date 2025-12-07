@@ -324,7 +324,7 @@ python manage.py test flight
 
 ## 👨‍💻 Author
 
-**Hasrat MD**
+**Hasrat**
 
 - GitHub: [@hasratmd697](https://github.com/hasratmd697)
 - Email: hasratmd697@gmail.com
