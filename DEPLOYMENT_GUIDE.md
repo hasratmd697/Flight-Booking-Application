@@ -14,7 +14,7 @@
 
 ```powershell
 # Download and install from:
-# https://cloud.google.com/sdk/docs/install
+https://cloud.google.com/sdk/docs/install
 
 # After installation, initialize:
 gcloud init
