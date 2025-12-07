@@ -5,6 +5,75 @@
 {% block head %}
     <title>Payment | Flight</title>
     <link rel="stylesheet" href="{% static 'css/payment_style.css' %}">
+    <style>
+        /* Make payment UI consistent with the rest of the application */
+        .validation-error {
+            color: #dc3545;
+            font-size: 0.85em;
+            margin-top: 5px;
+            display: none;
+        }
+        .validation-error.show {
+            display: block;
+        }
+        .form-control.is-invalid {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+        }
+        .form-control.is-valid {
+            border-color: #28a745;
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+        }
+        .payment-btn button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        /* Match application styles */
+        .payment-box {
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, .15);
+            border: none;
+        }
+        .payment-box-head-div {
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe0e0 100%);
+            border-bottom: 1px solid rgba(0,0,0,.1);
+        }
+        .payment-box-head h5 {
+            background: -webkit-linear-gradient(right, crimson, #b8017b);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 600;
+        }
+        .alert-danger {
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+        .form-control {
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            transition: all 0.2s ease;
+        }
+        .form-control:focus {
+            border-color: #b8017b;
+            box-shadow: 0 0 0 0.15rem rgba(184, 1, 123, 0.15);
+        }
+        .payment-btn button {
+            background: linear-gradient(135deg, crimson 0%, #b8017b 100%);
+            border: none;
+            padding: 12px 40px;
+            font-weight: 600;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        .payment-btn button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 20, 60, 0.3);
+        }
+        label {
+            color: #4a4a4a;
+        }
+    </style>
 {% endblock %}
 
 {% block body %}
@@ -20,12 +89,22 @@
                     </div>
                 </div>
                 <div class="payment-details-input-box">
-                    <form action="{% url 'payment' %}" method="POST">
+                    <form action="{% url 'payment' %}" method="POST" id="paymentForm" onsubmit="return validatePaymentForm()">
                         {% csrf_token %}
                         <!--<input type="hidden" name="payment_amount" value="{{fare}}">-->
                         <input type="hidden" name="ticket" value="{{ticket}}" required>
                         {% if ticket2 %}
                             <input type="hidden" name="ticket2" value="{{ticket2}}" required>
+                        {% endif %}
+                        {% if errors %}
+                        <div class="alert alert-danger" style="margin-bottom: 20px; border-radius: 10px; padding: 15px;">
+                            <strong>⚠️ Payment Validation Failed:</strong>
+                            <ul style="margin-bottom: 0; padding-left: 20px; margin-top: 10px;">
+                                {% for error in errors %}
+                                <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
                         {% endif %}
                         <div class="row payment-amount-div">
                             <div class="form-group">
@@ -37,7 +116,7 @@
                             <div class="form-group">
                                 <label for="card_number">CARD NUMBER</label>
                                 <div class="input-group">
-                                    <input type="tel" pattern="[0-9]*" class="form-control" id="card_number" name="cardNumber" autocomplete="off" maxlength="19" placeholder="Enter card number" required> <!--onkeypress="return isNumericValue(event);"-->
+                                    <input type="tel" class="form-control" id="card_number" name="cardNumber" autocomplete="off" maxlength="19" placeholder="1234 5678 9012 3456" required oninput="formatCardNumber(this); validateCardNumber();">
                                     <div class="input-group-append">
                                         <span class="input-group-text" id="basic-addon2">
                                         <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-credit-card" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -47,14 +126,14 @@
                                         </span>
                                     </div>
                                 </div>
-                                <!--<small id="nameHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>-->
+                                <div class="validation-error" id="cardNumberError">Please enter a valid 16-digit card number</div>
                             </div>
                         </div>
                         <div class="row card-holder-div">
                             <div class="form-group">
                                 <label for="card_holder_name">CARD HOLDER'S NAME</label>
-                                <input type="text" name="cardHolderName" class="form-control" id="cardHolderName" placeholder="Enter name" required>
-                                <!--<small id="nameHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>-->
+                                <input type="text" name="cardHolderName" class="form-control" id="cardHolderName" placeholder="JOHN DOE" required oninput="validateCardHolder();" onkeypress="return /[a-zA-Z\s]/.test(event.key)">
+                                <div class="validation-error" id="cardHolderError">Please enter the card holder's name (letters only)</div>
                             </div>
                         </div>
                         <div class="row expiry-cvv">
@@ -63,7 +142,7 @@
                                     <label for="expiry_month">EXPIRY DATE</label>
                                     <div class="expiry-input-div">
                                         <div class="month-div">
-                                            <select name="expMonth" id="expiry_month" class="form-control" required>
+                                            <select name="expMonth" id="expiry_month" class="form-control" required onchange="validateExpiry();">
                                                 <option value="">Month</option>
                                                 <option value="01">01</option>
                                                 <option value="02">02</option>
@@ -80,12 +159,8 @@
                                             </select>
                                         </div>
                                         <div class="yeae-div">
-                                            <select name="expYear" id="expiry_year" class="form-control" required>
+                                            <select name="expYear" id="expiry_year" class="form-control" required onchange="validateExpiry();">
                                                 <option value="">Year</option>
-                                                <option value="2020">2020</option>
-                                                <option value="2021">2021</option>
-                                                <option value="2022">2022</option>
-                                                <option value="2023">2023</option>
                                                 <option value="2024">2024</option>
                                                 <option value="2025">2025</option>
                                                 <option value="2026">2026</option>
@@ -98,49 +173,152 @@
                                                 <option value="2033">2033</option>
                                                 <option value="2034">2034</option>
                                                 <option value="2035">2035</option>
-                                                <option value="2036">2036</option>
-                                                <option value="2037">2037</option>
-                                                <option value="2038">2038</option>
-                                                <option value="2039">2039</option>
-                                                <option value="2040">2040</option>
-                                                <option value="2041">2041</option>
-                                                <option value="2042">2042</option>
-                                                <option value="2043">2043</option>
-                                                <option value="2044">2044</option>
-                                                <option value="2045">2045</option>
-                                                <option value="2046">2046</option>
-                                                <option value="2047">2047</option>
-                                                <option value="2048">2048</option>
-                                                <option value="2049">2049</option>
-                                                <option value="2050">2050</option>
-                                                <option value="2051">2051</option>
-                                                <option value="2052">2052</option>
-                                                <option value="2053">2053</option>
-                                                <option value="2054">2054</option>
-                                                <option value="2055">2055</option>
-                                                <option value="2056">2056</option>
                                             </select>
                                         </div>
                                     </div>
+                                    <div class="validation-error" id="expiryError">Card has expired or invalid date</div>
                                 </div>
                                 <div class="right-col">
                                     <div class="form-group">
                                         <label for="cvv_number">CVV CODE</label>
-                                        <input type="password" pattern="[0-9]*" class="form-control" placeholder="CVV" id="cvv_number" name="cvv" maxlength="3">    <!--onkeypress="return isNumericValue(event);"-->
-                                        <!--<small id="nameHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>-->
+                                        <input type="password" class="form-control" placeholder="123" id="cvv_number" name="cvv" maxlength="3" required oninput="validateCVV();" onkeypress="return /[0-9]/.test(event.key)">
+                                        <div class="validation-error" id="cvvError">CVV must be 3 digits</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="payment-btn">
-                            <button class="btn btn-primary btn-danger">Make payment</button>
+                            <button type="submit" class="btn btn-primary btn-danger" id="payButton">Make Payment</button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
-
-
-
     </section>
+
+    <script>
+        // Format card number with spaces
+        function formatCardNumber(input) {
+            let value = input.value.replace(/\s/g, '').replace(/\D/g, '');
+            let formatted = '';
+            for (let i = 0; i < value.length; i++) {
+                if (i > 0 && i % 4 === 0) {
+                    formatted += ' ';
+                }
+                formatted += value[i];
+            }
+            input.value = formatted;
+        }
+
+        // Validate card number (16 digits)
+        function validateCardNumber() {
+            const cardNumber = document.getElementById('card_number');
+            const error = document.getElementById('cardNumberError');
+            const digits = cardNumber.value.replace(/\s/g, '');
+            
+            if (digits.length === 16 && /^\d+$/.test(digits)) {
+                cardNumber.classList.remove('is-invalid');
+                cardNumber.classList.add('is-valid');
+                error.classList.remove('show');
+                return true;
+            } else if (digits.length > 0) {
+                cardNumber.classList.remove('is-valid');
+                cardNumber.classList.add('is-invalid');
+                error.classList.add('show');
+                return false;
+            }
+            return false;
+        }
+
+        // Validate card holder name
+        function validateCardHolder() {
+            const cardHolder = document.getElementById('cardHolderName');
+            const error = document.getElementById('cardHolderError');
+            const name = cardHolder.value.trim();
+            
+            if (name.length >= 2 && /^[a-zA-Z\s]+$/.test(name)) {
+                cardHolder.classList.remove('is-invalid');
+                cardHolder.classList.add('is-valid');
+                error.classList.remove('show');
+                return true;
+            } else if (name.length > 0) {
+                cardHolder.classList.remove('is-valid');
+                cardHolder.classList.add('is-invalid');
+                error.classList.add('show');
+                return false;
+            }
+            return false;
+        }
+
+        // Validate expiry date (not in past)
+        function validateExpiry() {
+            const month = document.getElementById('expiry_month');
+            const year = document.getElementById('expiry_year');
+            const error = document.getElementById('expiryError');
+            
+            if (!month.value || !year.value) {
+                return false;
+            }
+            
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1;
+            
+            const expYear = parseInt(year.value);
+            const expMonth = parseInt(month.value);
+            
+            if (expYear > currentYear || (expYear === currentYear && expMonth >= currentMonth)) {
+                month.classList.remove('is-invalid');
+                month.classList.add('is-valid');
+                year.classList.remove('is-invalid');
+                year.classList.add('is-valid');
+                error.classList.remove('show');
+                return true;
+            } else {
+                month.classList.remove('is-valid');
+                month.classList.add('is-invalid');
+                year.classList.remove('is-valid');
+                year.classList.add('is-invalid');
+                error.classList.add('show');
+                return false;
+            }
+        }
+
+        // Validate CVV (3 digits)
+        function validateCVV() {
+            const cvv = document.getElementById('cvv_number');
+            const error = document.getElementById('cvvError');
+            
+            if (cvv.value.length === 3 && /^\d+$/.test(cvv.value)) {
+                cvv.classList.remove('is-invalid');
+                cvv.classList.add('is-valid');
+                error.classList.remove('show');
+                return true;
+            } else if (cvv.value.length > 0) {
+                cvv.classList.remove('is-valid');
+                cvv.classList.add('is-invalid');
+                error.classList.add('show');
+                return false;
+            }
+            return false;
+        }
+
+        // Validate entire form before submission
+        function validatePaymentForm() {
+            const isCardValid = validateCardNumber();
+            const isHolderValid = validateCardHolder();
+            const isExpiryValid = validateExpiry();
+            const isCVVValid = validateCVV();
+            
+            if (isCardValid && isHolderValid && isExpiryValid && isCVVValid) {
+                // Show processing state
+                document.getElementById('payButton').innerHTML = '<span>Processing...</span>';
+                document.getElementById('payButton').disabled = true;
+                return true;
+            } else {
+                alert('Please correct the errors in the form before proceeding.');
+                return false;
+            }
+        }
+    </script>
 {% endblock %}

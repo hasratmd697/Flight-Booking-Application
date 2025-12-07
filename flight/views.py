@@ -24,6 +24,7 @@ from flight.seat_manager import (
     cleanup_expired_reservations,
     create_seats_for_flight
 )
+from flight.dynamic_pricing import get_dynamic_price, get_flight_prices_with_dynamic
 
 try:
     if len(Week.objects.all()) == 0:
@@ -449,21 +450,77 @@ def payment(request):
                 ticket2_id = request.POST['ticket2']
                 t2 = True
             fare = request.POST.get('fare')
-            card_number = request.POST['cardNumber']
+            card_number = request.POST['cardNumber'].replace(' ', '')  # Remove spaces
             card_holder_name = request.POST['cardHolderName']
             exp_month = request.POST['expMonth']
             exp_year = request.POST['expYear']
             cvv = request.POST['cvv']
+            
+            # Server-side validation
+            validation_errors = []
+            
+            # Validate card number (16 digits)
+            if not card_number.isdigit() or len(card_number) != 16:
+                validation_errors.append("Invalid card number. Must be 16 digits.")
+                print(f"[PAYMENT VALIDATION] FAILED: Invalid card number length={len(card_number)}")
+            else:
+                print(f"[PAYMENT VALIDATION] Card number validated: ****{card_number[-4:]}")
+            
+            # Validate card holder name (letters and spaces only)
+            import re
+            if not re.match(r'^[a-zA-Z\s]+$', card_holder_name) or len(card_holder_name) < 2:
+                validation_errors.append("Invalid card holder name. Letters only.")
+                print(f"[PAYMENT VALIDATION] FAILED: Invalid card holder name")
+            else:
+                print(f"[PAYMENT VALIDATION] Card holder validated: {card_holder_name}")
+            
+            # Validate expiry date (not in past)
+            try:
+                exp_m = int(exp_month)
+                exp_y = int(exp_year)
+                now = datetime.now()
+                if exp_y < now.year or (exp_y == now.year and exp_m < now.month):
+                    validation_errors.append("Card has expired.")
+                    print(f"[PAYMENT VALIDATION] FAILED: Card expired {exp_m}/{exp_y}")
+                else:
+                    print(f"[PAYMENT VALIDATION] Expiry validated: {exp_m}/{exp_y}")
+            except:
+                validation_errors.append("Invalid expiry date.")
+                print(f"[PAYMENT VALIDATION] FAILED: Invalid expiry format")
+            
+            # Validate CVV (3 digits)
+            if not cvv.isdigit() or len(cvv) != 3:
+                validation_errors.append("Invalid CVV. Must be 3 digits.")
+                print(f"[PAYMENT VALIDATION] FAILED: Invalid CVV")
+            else:
+                print(f"[PAYMENT VALIDATION] CVV validated: ***")
+            
+            # If validation errors, return to payment page
+            if validation_errors:
+                print(f"[PAYMENT VALIDATION] Payment rejected with {len(validation_errors)} error(s)")
+                ticket = Ticket.objects.get(id=ticket_id)
+                return render(request, 'flight/payment.html', {
+                    'fare': ticket.total_fare,
+                    'ticket': ticket_id,
+                    'ticket2': ticket2_id if t2 else None,
+                    'errors': validation_errors
+                })
+            
+            # All validations passed - process payment
+            print(f"[PAYMENT VALIDATION] SUCCESS: All validations passed, processing payment...")
 
             try:
                 ticket = Ticket.objects.get(id=ticket_id)
                 ticket.status = 'CONFIRMED'
                 ticket.booking_date = datetime.now()
                 ticket.save()
+                print(f"[PAYMENT] Ticket {ticket.ref_no} CONFIRMED - Payment successful!")
+                
                 if t2:
                     ticket2 = Ticket.objects.get(id=ticket2_id)
                     ticket2.status = 'CONFIRMED'
                     ticket2.save()
+                    print(f"[PAYMENT] Round-trip ticket {ticket2.ref_no} CONFIRMED!")
                     return render(request, 'flight/payment_process.html', {
                         'ticket1': ticket,
                         'ticket2': ticket2
@@ -473,6 +530,7 @@ def payment(request):
                     'ticket2': ""
                 })
             except Exception as e:
+                print(f"[PAYMENT] ERROR: {str(e)}")
                 return HttpResponse(e)
         else:
             return HttpResponse("Method must be post.")
@@ -779,3 +837,80 @@ def confirm_seat_booking(request):
     
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
+
+# Dynamic Pricing API
+@csrf_exempt
+def get_dynamic_price_api(request):
+    """
+    API endpoint to get dynamic price for a flight.
+    
+    GET params:
+        - flight_id: ID of the flight
+        - seat_class: 'economy', 'business', or 'first'
+        - departure_date: Date in YYYY-MM-DD format
+    
+    Returns JSON with base_price, dynamic_price, demand_level, etc.
+    """
+    flight_id = request.GET.get('flight_id')
+    seat_class = request.GET.get('seat_class', 'economy')
+    departure_date = request.GET.get('departure_date')
+    
+    if not flight_id or not departure_date:
+        return JsonResponse({'error': 'Missing flight_id or departure_date'}, status=400)
+    
+    try:
+        flight = Flight.objects.get(id=flight_id)
+        pricing = get_dynamic_price(flight, seat_class, departure_date)
+        
+        return JsonResponse({
+            'success': True,
+            'flight_id': flight_id,
+            'seat_class': seat_class,
+            'base_price': pricing['base_price'],
+            'dynamic_price': pricing['dynamic_price'],
+            'multiplier': pricing['multiplier'],
+            'demand_level': pricing['demand_level'],
+            'occupancy': pricing['occupancy'],
+            'days_to_departure': pricing['days_to_departure'],
+            'savings': pricing['savings']
+        })
+    except Flight.DoesNotExist:
+        return JsonResponse({'error': 'Flight not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def get_flight_pricing(request):
+    """
+    API endpoint to get dynamic prices for multiple flights.
+    
+    POST body:
+        - flight_ids: List of flight IDs
+        - seat_class: 'economy', 'business', or 'first'
+        - departure_date: Date in YYYY-MM-DD format
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        flight_ids = data.get('flight_ids', [])
+        seat_class = data.get('seat_class', 'economy')
+        departure_date = data.get('departure_date')
+        
+        if not departure_date:
+            return JsonResponse({'error': 'departure_date required'}, status=400)
+        
+        results = {}
+        for flight_id in flight_ids:
+            try:
+                flight = Flight.objects.get(id=flight_id)
+                pricing = get_dynamic_price(flight, seat_class, departure_date)
+                results[str(flight_id)] = pricing
+            except Flight.DoesNotExist:
+                results[str(flight_id)] = {'error': 'Not found'}
+        
+        return JsonResponse({'success': True, 'prices': results})
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)

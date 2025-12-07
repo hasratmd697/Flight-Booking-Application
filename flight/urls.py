@@ -28,4 +28,8 @@ urlpatterns = [
     path('api/seats/reserve', views.reserve_seat_view, name="reserve_seat"),
     path('api/seats/release', views.release_seat_view, name="release_seat"),
     path('api/seats/confirm', views.confirm_seat_booking, name="confirm_booking"),
+    
+    # Dynamic Pricing API
+    path('api/pricing/flight', views.get_dynamic_price_api, name="dynamic_price"),
+    path('api/pricing/flights', views.get_flight_pricing, name="dynamic_prices"),
 ]

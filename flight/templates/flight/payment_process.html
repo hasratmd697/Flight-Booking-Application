@@ -3,9 +3,150 @@
 {% load static %}
 
 {% block head %}
-    <title>Payment Processing | Flight</title>
+    <title>Payment Successful | Flight</title>
     <link rel="stylesheet" href="{% static 'css/payment_process_style.css' %}">
     <script type="text/javascript" src="{% static 'js/payment_process.js' %}"></script>
+    <style>
+        /* Make payment success UI consistent with the rest of the application */
+        .payment-success-message {
+            font-size: 1.8rem;
+            background: -webkit-linear-gradient(right, crimson, #b8017b);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+            margin: 20px 0;
+            animation: fadeInUp 0.8s ease-out;
+        }
+        .payment-done-checkmark {
+            animation: scaleIn 0.5s ease-out;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes scaleIn {
+            from {
+                transform: scale(0);
+            }
+            to {
+                transform: scale(1);
+            }
+        }
+        .confirmation-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 30px;
+            margin: 20px auto;
+            max-width: 600px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, .15);
+        }
+        .booking-details {
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe0e0 100%);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, .1);
+        }
+        .booking-details strong {
+            color: #4a4a4a;
+        }
+        .booking-details .ref {
+            background: -webkit-linear-gradient(right, crimson, #b8017b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, crimson 0%, #b8017b 100%);
+            border: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 20, 60, 0.3);
+            background: linear-gradient(135deg, #b8017b 0%, crimson 100%);
+        }
+        .btn-outline-primary {
+            border-color: #b8017b;
+            color: #b8017b;
+            font-weight: 500;
+        }
+        .btn-outline-primary:hover {
+            background: linear-gradient(135deg, crimson 0%, #b8017b 100%);
+            border-color: transparent;
+        }
+        .btn-outline-secondary {
+            color: #4a4a4a;
+            font-weight: 500;
+        }
+        .header-after {
+            color: #4a4a4a !important;
+            font-weight: 500;
+            text-align: center;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, crimson 0%, #b8017b 100%);
+            border: none;
+        }
+        .svg-div-c svg {
+            filter: drop-shadow(0 4px 6px rgba(220, 20, 60, 0.2));
+        }
+        /* Center everything in the payment success UI */
+        .section2 {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .confirmation-card {
+            text-align: center;
+        }
+        .svg-div-c {
+            display: flex;
+            justify-content: center;
+            margin: 0 auto;
+        }
+        .payment-success-message {
+            text-align: center;
+            display: block;
+            width: 100%;
+        }
+        .booking-details {
+            text-align: center;
+        }
+        .ticket-div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .ticket-div > div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .section3 {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .svg-div-e {
+            display: flex;
+            justify-content: center;
+        }
+    </style>
 {% endblock %}
 
 {% block body %}
@@ -23,47 +164,87 @@
     <input type="hidden" class="ref1" value="{{ticket1.ref_no}}">
     <input type="hidden" class="ref2" value="{{ticket2.ref_no}}">
     <section class="section section2">
-        <div class="svg-div-c">
-            <svg width="5em" height="5em" viewBox="0 0 16 16" class="bi bi-check-circle-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
-            </svg>
+        <div class="confirmation-card">
+            <div class="svg-div-c payment-done-checkmark">
+                <svg width="5em" height="5em" viewBox="0 0 16 16" class="bi bi-check-circle-fill" fill="url(#crimsonGradient)" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="crimsonGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:crimson;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#b8017b;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                </svg>
+            </div>
+            <div class="payment-success-message">
+                ✨ Your Payment is Done! ✨
+            </div>
+            <div class="header-after" style="font-size: 1.1rem;">
+                Congratulations! Your flight booking is confirmed.
+            </div>
+            <div class="booking-details">
+                <div class="flight1" style="padding: 10px 0; border-bottom: 1px solid #eee;">
+                    <strong>Booking Reference:</strong> <span class="ref" style="color: #28a745; font-weight: bold;">{{ticket1.ref_no}}</span>
+                    <br>
+                    <span style="font-size: 1.1rem;">
+                        <span class="from1">{{ticket1.flight.origin.code}}</span> 
+                        <span>✈️</span> 
+                        <span class="to1">{{ticket1.flight.destination.code}}</span>
+                    </span>
+                </div>
+                <div class="flight2" style="padding: 10px 0; display: none;">
+                    <strong>Return Flight:</strong> <span class="ref" style="color: #28a745; font-weight: bold;">{{ticket2.ref_no}}</span>
+                    <br>
+                    <span style="font-size: 1.1rem;">
+                        <span class="from2">{{ticket2.flight.origin.code}}</span> 
+                        <span>✈️</span> 
+                        <span class="to2">{{ticket2.flight.destination.code}}</span>
+                    </span>
+                </div>
+            </div>
         </div>
-        <div class="header-after">
-            Congratulations, Your flight booking is confirmed.
-        </div>
-        <div class="details-div">
-            <div class="flight1">Booking Ref. Number: &nbsp;<span class="ref">{{ticket1.ref_no}}</span>&nbsp;&nbsp;&nbsp;(<span class="from1">{{ticket1.flight.origin.code}}</span> <span>&#8594;</span> <span class="to1">{{ticket1.flight.destination.code}}</span>)</div>
-            <div class="flight2">Booking Ref. Number: &nbsp;<span class="ref">{{ticket2.ref_no}}</span>&nbsp;&nbsp;&nbsp;(<span class="from2">{{ticket2.flight.origin.code}}</span> <span>&#8594;</span> <span class="to2">{{ticket2.flight.destination.code}}</span>)</div>
-        </div>
-        <div class="ticket-div">
+        <div class="ticket-div" style="margin-top: 20px;">
             <div>
                 <form action="{% url 'getticket' %}" method="get" target="_blank">
                     <input type="hidden" name="ref" value="{{ticket1.ref_no}}">
-                    <button type="submit" class="btn btn-outline-primary">Print Ticket ({{ticket1.flight.origin.code}} to {{ticket1.flight.destination.code}})</button>
+                    <button type="submit" class="btn btn-success" style="margin: 5px; padding: 12px 25px; font-size: 1rem;">
+                        🎫 Print Ticket ({{ticket1.flight.origin.code}} → {{ticket1.flight.destination.code}})
+                    </button>
                 </form>
                 {% if ticket2 %}
                     <form action="{% url 'getticket' %}" method="get" target="_blank">
                         <input type="hidden" name="ref" value="{{ticket2.ref_no}}">
-                        <button type="submit" class="btn btn-outline-primary">Print Ticket ({{ticket2.flight.origin.code}} to {{ticket2.flight.destination.code}})</button>
+                        <button type="submit" class="btn btn-success" style="margin: 5px; padding: 12px 25px; font-size: 1rem;">
+                            🎫 Print Return Ticket ({{ticket2.flight.origin.code}} → {{ticket2.flight.destination.code}})
+                        </button>
                     </form>
                 {% endif %}
+                <br>
+                <button class="btn btn-outline-primary" style="margin: 10px; padding: 10px 20px;" type="button" onclick="window.location.href = '/flight/bookings'">
+                    📋 View All Bookings
+                </button>
+                <button class="btn btn-outline-secondary" style="margin: 10px; padding: 10px 20px;" type="button" onclick="window.location.href = '/'">
+                    🏠 Go Home
+                </button>
             </div>
         </div>
     </section>
     <section class="section section3">
         <div class="svg-div-e">
-            <svg width="5em" height="5em" viewBox="0 0 16 16" class="bi bi-x-circle-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <svg width="5em" height="5em" viewBox="0 0 16 16" class="bi bi-x-circle-fill" fill="#dc3545" xmlns="http://www.w3.org/2000/svg">
                 <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"/>
             </svg>
         </div>
-        <div class="header-after star">
-            There was an error while processing the payment.
+        <div class="header-after star" style="color: #dc3545;">
+            Payment Failed
         </div>
         <div class="below-header">
-            Please retry after sometime.
+            There was an error while processing the payment. Please try again.
         </div>
         <div class="ticket-div">
-            <button class="btn btn-outline-primary" type="button" onclick="window.location.href = '/'">Go Home</button>
+            <button class="btn btn-danger" type="button" onclick="window.location.href = '/'" style="padding: 12px 25px;">
+                Try Again
+            </button>
         </div>
     </section>
 {% endblock %}

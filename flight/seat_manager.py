@@ -2,6 +2,14 @@ from .models import Flight, Seat, SEAT_CLASS
 from datetime import datetime, timedelta
 from django.db import transaction
 from django.utils import timezone
+import logging
+
+# Configure logging for seat operations
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 
 def create_seats_for_flight(flight):
@@ -97,9 +105,12 @@ def reserve_seat(seat_id, duration_minutes=10):
     """
     Reserve a seat temporarily with row-level locking to prevent race conditions
     """
+    logger.info(f"[CONCURRENCY] Attempting to reserve seat ID: {seat_id}")
     try:
         # Get the seat with row-level lock (SELECT FOR UPDATE)
+        logger.info(f"[CONCURRENCY] Acquiring row-level lock for seat ID: {seat_id}")
         seat = Seat.objects.select_for_update().get(id=seat_id)
+        logger.info(f"[CONCURRENCY] Lock acquired for seat {seat.seat_number} (Flight: {seat.flight.id}) - Current status: {seat.status}")
         
         # Check if seat is available
         if seat.status != 'available':
@@ -110,14 +121,20 @@ def reserve_seat(seat_id, duration_minutes=10):
                     seat.status = 'available'
                     seat.reserved_until = None
                 else:
+                    logger.warning(f"[CONCURRENCY] CONFLICT: Seat {seat.seat_number} is already reserved by another user until {seat.reserved_until}")
                     return {'success': False, 'error': 'Seat is already reserved'}
             else:
+                logger.warning(f"[CONCURRENCY] CONFLICT: Seat {seat.seat_number} is not available - status: {seat.status}")
                 return {'success': False, 'error': 'Seat is not available'}
         
         # Reserve the seat
         seat.status = 'reserved'
         seat.reserved_until = timezone.now() + timedelta(minutes=duration_minutes)
         seat.save()
+        
+        logger.info(f"[CONCURRENCY] SUCCESS: Seat {seat.seat_number} RESERVED - Flight: {seat.flight.id} - Reserved until: {seat.reserved_until}")
+        logger.info(f"[CONCURRENCY] DATABASE UPDATED: seat_id={seat.id}, new_status='reserved', reserved_until={seat.reserved_until}")
+        logger.info(f"[CONCURRENCY] This seat is now BLOCKED and cannot be booked by anyone else until {seat.reserved_until}")
         
         return {
             'success': True,
@@ -126,8 +143,10 @@ def reserve_seat(seat_id, duration_minutes=10):
             'reserved_until': seat.reserved_until
         }
     except Seat.DoesNotExist:
+        logger.error(f"[CONCURRENCY] ERROR: Seat ID {seat_id} not found in database")
         return {'success': False, 'error': 'Seat not found'}
     except Exception as e:
+        logger.error(f"[CONCURRENCY] ERROR reserving seat {seat_id}: {str(e)}")
         return {'success': False, 'error': str(e)}
 
 
@@ -136,21 +155,29 @@ def book_seat(seat_id):
     """
     Book a seat (mark as booked) with row-level locking
     """
+    logger.info(f"[CONCURRENCY] Attempting to BOOK seat ID: {seat_id}")
     try:
         seat = Seat.objects.select_for_update().get(id=seat_id)
+        logger.info(f"[CONCURRENCY] Lock acquired for booking seat {seat.seat_number} - Current status: {seat.status}")
         
         # Can only book if available or reserved
         if seat.status not in ['available', 'reserved']:
+            logger.warning(f"[CONCURRENCY] BOOKING FAILED: Seat {seat.seat_number} status is '{seat.status}' - cannot book")
             return {'success': False, 'error': 'Seat is not available for booking'}
         
         seat.status = 'booked'
         seat.reserved_until = None
         seat.save()
         
+        logger.info(f"[CONCURRENCY] SUCCESS: Seat {seat.seat_number} BOOKED PERMANENTLY - Database updated")
+        logger.info(f"[CONCURRENCY] DATABASE UPDATED: seat_id={seat.id}, new_status='booked' - This seat is NO LONGER AVAILABLE")
+        
         return {'success': True, 'seat_id': seat.id, 'seat_number': seat.seat_number}
     except Seat.DoesNotExist:
+        logger.error(f"[CONCURRENCY] ERROR: Seat ID {seat_id} not found")
         return {'success': False, 'error': 'Seat not found'}
     except Exception as e:
+        logger.error(f"[CONCURRENCY] ERROR booking seat {seat_id}: {str(e)}")
         return {'success': False, 'error': str(e)}
 
 
@@ -159,17 +186,23 @@ def release_seat(seat_id):
     """
     Release a reserved seat back to available
     """
+    logger.info(f"[CONCURRENCY] Attempting to RELEASE seat ID: {seat_id}")
     try:
         seat = Seat.objects.select_for_update().get(id=seat_id)
+        logger.info(f"[CONCURRENCY] Lock acquired for releasing seat {seat.seat_number} - Current status: {seat.status}")
         
         if seat.status == 'reserved':
             seat.status = 'available'
             seat.reserved_until = None
             seat.save()
+            logger.info(f"[CONCURRENCY] SUCCESS: Seat {seat.seat_number} RELEASED - Now available for others")
+            logger.info(f"[CONCURRENCY] DATABASE UPDATED: seat_id={seat.id}, new_status='available'")
             return {'success': True}
         
+        logger.warning(f"[CONCURRENCY] RELEASE FAILED: Seat {seat.seat_number} is not reserved (status: {seat.status})")
         return {'success': False, 'error': 'Seat is not reserved'}
     except Seat.DoesNotExist:
+        logger.error(f"[CONCURRENCY] ERROR: Seat ID {seat_id} not found")
         return {'success': False, 'error': 'Seat not found'}
 
 

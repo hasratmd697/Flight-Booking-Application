@@ -388,15 +388,16 @@
                                                 </div>
                                             </div>
                                             <div class="flight-details">
-                                                <div class="flight-price">
-                                                    <h5>
-                                                        ₹ 
-                                                        <span>
-                                                            {% if seat == 'Economy' %}{{flight.economy_fare}}{% endif %}
-                                                            {% if seat == 'Business' %}{{flight.business_fare}}{% endif %}
-                                                            {% if seat == 'First' %}{{flight.first_fare}}{% endif %}
-                                                        </span>
-                                                    </h5>
+                                                <div class="flight-price" data-flight-id="{{flight.id}}" 
+                                                     data-base-price="{% if seat == 'Economy' %}{{flight.economy_fare}}{% elif seat == 'Business' %}{{flight.business_fare}}{% else %}{{flight.first_fare}}{% endif %}">
+                                                    <div class="dynamic-price-container">
+                                                        <h5 class="current-price">
+                                                            ₹ <span class="price-value">{% if seat == 'Economy' %}{{flight.economy_fare}}{% elif seat == 'Business' %}{{flight.business_fare}}{% else %}{{flight.first_fare}}{% endif %}</span>
+                                                        </h5>
+                                                        <div class="demand-indicator" style="font-size: 0.7em; color: #666; display: none;">
+                                                            <span class="demand-badge" style="padding: 2px 6px; border-radius: 3px; font-weight: 500;"></span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                                 <div class="flight-details-btn">
 
@@ -885,4 +886,78 @@
             </div>
         {% endif %}
     </section>
+    
+    <script>
+    // Dynamic Pricing - Load prices based on demand
+    document.addEventListener('DOMContentLoaded', function() {
+        const departDate = '{{depart_date|date:"Y-m-d"}}';
+        const seatClass = '{{seat|lower}}';
+        
+        // Get all flight price elements
+        const priceElements = document.querySelectorAll('.flight-price[data-flight-id]');
+        
+        priceElements.forEach(function(priceEl) {
+            const flightId = priceEl.getAttribute('data-flight-id');
+            const basePrice = parseFloat(priceEl.getAttribute('data-base-price'));
+            
+            // Fetch dynamic price
+            fetch(`/api/pricing/flight?flight_id=${flightId}&seat_class=${seatClass}&departure_date=${departDate}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const priceValue = priceEl.querySelector('.price-value');
+                        const demandIndicator = priceEl.querySelector('.demand-indicator');
+                        const demandBadge = priceEl.querySelector('.demand-badge');
+                        
+                        // Update price
+                        priceValue.textContent = data.dynamic_price.toFixed(0);
+                        
+                        // Show demand indicator
+                        demandIndicator.style.display = 'block';
+                        
+                        // Set demand badge color and text
+                        const demandLevel = data.demand_level;
+                        let badgeColor, badgeText;
+                        
+                        if (demandLevel === 'Low') {
+                            badgeColor = '#28a745';
+                            badgeText = '📉 Low Demand';
+                        } else if (demandLevel === 'Normal') {
+                            badgeColor = '#17a2b8';
+                            badgeText = '📊 Normal';
+                        } else if (demandLevel === 'Moderate') {
+                            badgeColor = '#ffc107';
+                            badgeText = '📈 Moderate Demand';
+                        } else if (demandLevel === 'High') {
+                            badgeColor = '#fd7e14';
+                            badgeText = '🔥 High Demand';
+                        } else {
+                            badgeColor = '#dc3545';
+                            badgeText = '🚀 Very High Demand';
+                        }
+                        
+                        demandBadge.style.backgroundColor = badgeColor;
+                        demandBadge.style.color = 'white';
+                        demandBadge.textContent = badgeText;
+                        
+                        // If price is different from base, show indicator
+                        if (data.multiplier < 1) {
+                            priceValue.style.color = '#28a745';
+                        } else if (data.multiplier > 1.1) {
+                            priceValue.style.color = '#dc3545';
+                        }
+                        
+                        // Update radio button data-fare if present
+                        const radioBtn = priceEl.closest('.each-flight-div-box').querySelector('input[type="radio"]');
+                        if (radioBtn) {
+                            radioBtn.setAttribute('data-fare', data.dynamic_price);
+                        }
+                        
+                        console.log(`[Dynamic Pricing] Flight ${flightId}: ₹${basePrice} → ₹${data.dynamic_price} (${demandLevel})`);
+                    }
+                })
+                .catch(err => console.log('Could not load dynamic price:', err));
+        });
+    });
+    </script>
 {% endblock %}
