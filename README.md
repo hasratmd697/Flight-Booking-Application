@@ -65,6 +65,12 @@ Hi! This is my flight booking project that I made using Python and Django. Its a
 7. Start server: `python manage.py runserver`
 8. Open browser and go to `http://127.0.0.1:8000`
 
+## Live Demo
+
+The application is deployed on Google App Engine with Cloud SQL PostgreSQL.
+
+**Live URL:** https://flight-app-2025.el.r.appspot.com
+
 ## Folder Structure
 
 - `capstone/` - main django settings
