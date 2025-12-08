@@ -89,6 +89,6 @@ Hi! This is my flight booking project that I made using Python and Django. Its a
 
 ---
 
-Made by Hasrat MD
+Made by Hasrat Hussain
 
-This is a learning project. Feel free to use it and learn from it!
+This is a Infosys Internship project. Feel free to use it and learn from it!
