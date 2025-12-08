@@ -94,8 +94,8 @@ User B clicks seat 1A → Server sees 'reserved' → Returns error → User B se
 The migrations have already been created and applied. If you need to rerun:
 
 ```bash
-python main.py makemigrations
-python main.py migrate
+python manage.py makemigrations
+python manage.py migrate
 ```
 
 ### 2. Initialize Seats for Existing Flights
@@ -103,7 +103,7 @@ python main.py migrate
 Run this script to create seats for all flights:
 
 ```bash
-python main.py shell < create_all_seats.py
+python manage.py shell < create_all_seats.py
 ```
 
 Or manually in Django shell:
