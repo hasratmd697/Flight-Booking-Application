@@ -43,7 +43,17 @@ def addPlaces():
     print("Done.\n")
 
 def addDomesticFlights():
-    file = open("./Data/domestic_flights.csv", "r")
+    """Add domestic flights from CSV if no flights exist yet."""
+    # Check if flights already exist to avoid duplicates on restart
+    if Flight.objects.exists():
+        print("Domestic flights already exist, skipping...")
+        return
+    
+    try:
+        file = open("./Data/domestic_flights.csv", "r")
+    except FileNotFoundError:
+        print("domestic_flights.csv not found, skipping...")
+        return
     print("Adding Domestic Flights...")
     total = get_number_of_lines("./Data/domestic_flights.csv")
     for i, line in tqdm(enumerate(file), total=total):
@@ -73,7 +83,17 @@ def addDomesticFlights():
     print("Done.\n")
 
 def addInternationalFlights():
-    file = open("./Data/international_flights.csv", "r")
+    """Add international flights from CSV if no flights exist yet."""
+    # Check if flights already exist to avoid duplicates on restart
+    if Flight.objects.exists():
+        print("Flights already exist, skipping international flights...")
+        return
+    
+    try:
+        file = open("./Data/international_flights.csv", "r")
+    except FileNotFoundError:
+        print("international_flights.csv not found, skipping...")
+        return
     print("Adding International Flights...")
     total = get_number_of_lines("./Data/international_flights.csv")
     for i, line in tqdm(enumerate(file), total=total):
