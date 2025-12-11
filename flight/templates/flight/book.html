@@ -20,6 +20,11 @@
                 <input type="hidden" name="flight2Class" value="{{seat}}">
                 <input type="hidden" name="flight2Date" value='{{flight2ddate | date:"d-m-Y"}}'>
             {% endif %}
+            {% if selected_seats %}
+                {% for seat_obj in selected_seats %}
+                <input type="hidden" name="selected_seats" value="{{ seat_obj.id }}">
+                {% endfor %}
+            {% endif %}
             <div class="row main-row">
                 <div class="col-8">
                 <div class="ticket-details">
@@ -478,14 +483,34 @@
                         <h5>Have a coupon code?</h5>
                         <hr>
                         <div class="row base-fare">
-                            <div class="col-9" style="padding: 10px 10px 10px 0px">
-                                <input type="text" name="coupon" class="form-control" placeholder="Coupon Code" style="text-transform: uppercase;">
+                            <div class="col-9 coupon-input-wrapper" style="padding: 10px 10px 10px 0px; position: relative;">
+                                <input type="text" name="coupon" id="coupon-input" class="form-control" placeholder="Enter coupon code" style="text-transform: uppercase;" autocomplete="off">
+                                <input type="hidden" name="couponDiscount" id="coupon-discount-value" value="0">
+                                <!-- Compact Coupon Dropdown -->
+                                <div class="coupon-dropdown" id="coupon-dropdown">
+                                    <div class="coupon-item" data-code="HDFC10" data-discount="10" data-type="percent">
+                                        <span class="coupon-item-code">💳 HDFC10</span>
+                                        <span class="coupon-item-badge">10% OFF</span>
+                                    </div>
+                                    <div class="coupon-item" data-code="ICICI15" data-discount="15" data-type="percent">
+                                        <span class="coupon-item-code">💳 ICICI15</span>
+                                        <span class="coupon-item-badge">15% OFF</span>
+                                    </div>
+                                    <div class="coupon-item" data-code="SBI500" data-discount="500" data-type="flat">
+                                        <span class="coupon-item-code">💳 SBI500</span>
+                                        <span class="coupon-item-badge">₹500 OFF</span>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col coupon-apply" style="padding: 10px 10px 10px 0px">
                                 <center>
-                                    <button type="button" class="btn btn-primary btn-danger">Apply</button>
+                                    <button type="button" class="btn btn-primary btn-danger" id="apply-coupon-btn">Apply</button>
                                 </center>
                             </div>
+                        </div>
+                        <div class="coupon-applied-msg" id="coupon-applied-msg" style="display: none;">
+                            <span class="coupon-success">✓ You saved <span id="savings-amount">₹0</span></span>
+                            <button type="button" class="btn-link remove-coupon" id="remove-coupon-btn">Remove</button>
                         </div>
                     </div>
                 </div>

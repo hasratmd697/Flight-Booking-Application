@@ -5,6 +5,35 @@
 {% block head %}
     <title>Select Your Seat | Flight</title>
     <link rel="stylesheet" href="{% static 'css/seat_selection_style.css' %}">
+    <style>
+        .flight-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e74c3c;
+            background: white;
+            color: #e74c3c;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .tab-btn:hover {
+            background: #fff5f5;
+        }
+        .tab-btn.active {
+            background: #e74c3c;
+            color: white;
+        }
+        /* Only hide return section by default, outbound always visible */
+        #returnSection {
+            display: none;
+        }
+    </style>
 {% endblock %}
 
 {% block body %}
@@ -12,36 +41,50 @@
         <div class="container">
             <div class="row main-row">
                 <div class="col-8">
-                    <!-- Flight Info Card -->
-                    <div class="ticket-details">
-                        <h5>🛫 Select Your Seat</h5>
-                        <hr>
-                        <div class="row ticket-details-div">
-                            <div class="col-3 airline-name">
-                                <div class="brand">{{ flight.airline }}</div>
-                                <div class="plane-name">{{ flight.plane }}</div>
-                            </div>
-                            <div class="col-3 depart-time">
-                                <div class="time">{{ flight.depart_time|time:'H:i' }}</div>
-                                <div class="place">{{ flight.origin.city }}</div>
-                                <div class="airport">{{ flight.origin.airport }}</div>
-                            </div>
-                            <div class="col-3 time-details">
-                                <div class="duration" data-value="{{ flight.duration }}"></div>
-                            </div>
-                            <div class="col-3 arrival-time">
-                                <div class="time">{{ flight.arrival_time|time:'H:i' }}</div>
-                                <div class="place">{{ flight.destination.city }}</div>
-                                <div class="airport">{{ flight.destination.airport }}</div>
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="selection-status-div">
-                            <span id="selectedCount">0</span> of
-                            <span id="totalPassengers">1</span> Seat(s) Selected
-                            <span class="selection-pending" id="pendingText">- Selection pending</span>
-                        </div>
+                    {% if round_trip and flight2 %}
+                    <!-- Tab Navigation for Round Trip -->
+                    <div class="flight-tabs">
+                        <button class="tab-btn active" id="outboundTab" onclick="switchTab('outbound')">
+                            🛫 Outbound: {{ flight.origin.code }} → {{ flight.destination.code }}
+                        </button>
+                        <button class="tab-btn" id="returnTab" onclick="switchTab('return')">
+                            🛬 Return: {{ flight2.origin.code }} → {{ flight2.destination.code }}
+                        </button>
                     </div>
+                    {% endif %}
+
+                    <!-- Outbound Flight Section -->
+                    <div id="outboundSection" class="flight-section active">
+                        <!-- Flight Info Card -->
+                        <div class="ticket-details">
+                            <h5>🛫 Select Seat - Outbound Flight</h5>
+                            <hr>
+                            <div class="row ticket-details-div">
+                                <div class="col-3 airline-name">
+                                    <div class="brand">{{ flight.airline }}</div>
+                                    <div class="plane-name">{{ flight.plane }}</div>
+                                </div>
+                                <div class="col-3 depart-time">
+                                    <div class="time">{{ flight.depart_time|time:'H:i' }}</div>
+                                    <div class="place">{{ flight.origin.city }}</div>
+                                    <div class="airport">{{ flight.origin.airport }}</div>
+                                </div>
+                                <div class="col-3 time-details">
+                                    <div class="duration" data-value="{{ flight.duration.total_seconds }}"></div>
+                                </div>
+                                <div class="col-3 arrival-time">
+                                    <div class="time">{{ flight.arrival_time|time:'H:i' }}</div>
+                                    <div class="place">{{ flight.destination.city }}</div>
+                                    <div class="airport">{{ flight.destination.airport }}</div>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="selection-status-div">
+                                <span id="selectedCount">0</span> of
+                                <span id="totalPassengers">1</span> Seat(s) Selected
+                                <span class="selection-pending" id="pendingText">- Selection pending</span>
+                            </div>
+                        </div>
 
                     <!-- Notice -->
                     <div class="notice-box">
@@ -119,10 +162,90 @@
                         <button type="button" class="btn btn-outline-secondary" onclick="clearSelection()">
                             Clear Selection
                         </button>
+                        {% if round_trip and flight2 %}
+                        <button type="button" class="btn btn-secondary" id="nextFlightBtn" onclick="switchTab('return')" style="display: inline-block;">
+                            Next: Return Flight →
+                        </button>
+                        {% else %}
                         <button type="button" class="btn btn-primary btn-danger" id="confirmBtn" onclick="confirmSeats()" disabled>
                             Confirm & Continue
                         </button>
+                        {% endif %}
                     </div>
+                    </div> <!-- End outbound section -->
+
+                    {% if round_trip and flight2 %}
+                    <!-- Return Flight Section -->
+                    <div id="returnSection" class="flight-section" style="display: none;">
+                        <!-- Return Flight Info Card -->
+                        <div class="ticket-details">
+                            <h5>🛬 Select Seat - Return Flight</h5>
+                            <hr>
+                            <div class="row ticket-details-div">
+                                <div class="col-3 airline-name">
+                                    <div class="brand">{{ flight2.airline }}</div>
+                                    <div class="plane-name">{{ flight2.plane }}</div>
+                                </div>
+                                <div class="col-3 depart-time">
+                                    <div class="time">{{ flight2.depart_time|time:'H:i' }}</div>
+                                    <div class="place">{{ flight2.origin.city }}</div>
+                                    <div class="airport">{{ flight2.origin.airport }}</div>
+                                </div>
+                                <div class="col-3 time-details">
+                                    <div class="duration" data-value="{{ flight2.duration.total_seconds }}"></div>
+                                </div>
+                                <div class="col-3 arrival-time">
+                                    <div class="time">{{ flight2.arrival_time|time:'H:i' }}</div>
+                                    <div class="place">{{ flight2.destination.city }}</div>
+                                    <div class="airport">{{ flight2.destination.airport }}</div>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="selection-status-div">
+                                <span id="selectedCount2">0</span> of
+                                <span id="totalPassengers2">1</span> Return Seat(s) Selected
+                                <span class="selection-pending" id="pendingText2">- Selection pending</span>
+                            </div>
+                        </div>
+
+                        <!-- Return Flight Seat Map -->
+                        <div class="seat-map-card">
+                            <h5>Return Flight Seat Map</h5>
+                            <hr>
+                            <div class="seat-map-wrapper">
+                                <div class="airplane-visual">
+                                    <div class="cockpit-visual"></div>
+                                    <div class="cabin-section">
+                                        <div class="column-headers">
+                                            <div class="row-num-placeholder"></div>
+                                            <div class="left-cols">
+                                                <span>A</span><span>B</span><span>C</span>
+                                            </div>
+                                            <div class="aisle-space"></div>
+                                            <div class="right-cols">
+                                                <span>D</span><span>E</span><span>F</span>
+                                            </div>
+                                            <div class="row-num-placeholder"></div>
+                                        </div>
+                                        <div class="seat-rows-container" id="seatRows2">
+                                            <!-- Return flight seats will be loaded here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons for Return -->
+                        <div class="action-buttons-div">
+                            <button type="button" class="btn btn-secondary" onclick="switchTab('outbound')">
+                                ← Back: Outbound Flight
+                            </button>
+                            <button type="button" class="btn btn-primary btn-danger" id="confirmBtn2" onclick="confirmSeats()" disabled>
+                                Confirm Both & Continue
+                            </button>
+                        </div>
+                    </div> <!-- End return section -->
+                    {% endif %}
                 </div>
 
                 <div class="col-4">
@@ -173,17 +296,53 @@
 
     <script type="text/javascript">
         let selectedSeats = [];
+        let selectedSeats2 = []; // Return flight seats
         let seatData = {};
+        let seatData2 = {}; // Return flight seat data
         const flightId = {{ flight.id }};
         const seatClass = '{{ seat_class }}';
+        {% if round_trip and flight2 %}
+        const isRoundTrip = true;
+        const flight2Id = {{ flight2.id }};
+        {% else %}
+        const isRoundTrip = false;
+        const flight2Id = null;
+        {% endif %}
+        let currentTab = 'outbound';
 
-        // Initialize duration display (reuse from book.js pattern)
+        // Tab switching function
+        function switchTab(tab) {
+            currentTab = tab;
+            if (tab === 'outbound') {
+                document.getElementById('outboundSection').style.display = 'block';
+                document.getElementById('outboundTab')?.classList.add('active');
+                if (document.getElementById('returnSection')) {
+                    document.getElementById('returnSection').style.display = 'none';
+                    document.getElementById('returnTab')?.classList.remove('active');
+                }
+            } else if (tab === 'return') {
+                document.getElementById('outboundSection').style.display = 'none';
+                document.getElementById('outboundTab')?.classList.remove('active');
+                if (document.getElementById('returnSection')) {
+                    document.getElementById('returnSection').style.display = 'block';
+                    document.getElementById('returnTab')?.classList.add('active');
+                    // Load return flight seats if not already loaded
+                    if (Object.keys(seatData2).length === 0) {
+                        loadSeats2();
+                    }
+                }
+            }
+        }
+
+        // Initialize duration display (value is in seconds)
         document.querySelectorAll('.duration').forEach(function(el) {
-            const value = el.dataset.value;
-            if (value) {
-                const hours = Math.floor(value / 60);
-                const mins = value % 60;
+            const totalSeconds = parseFloat(el.dataset.value);
+            if (totalSeconds && !isNaN(totalSeconds)) {
+                const hours = Math.floor(totalSeconds / 3600);
+                const mins = Math.floor((totalSeconds % 3600) / 60);
                 el.textContent = hours + 'h ' + mins + 'm';
+            } else {
+                el.textContent = 'Duration N/A';
             }
         });
 
@@ -277,33 +436,135 @@
             });
         }
 
-        function createSeatElement(seat) {
+        function createSeatElement(seat, isReturn = false) {
             const seatDiv = document.createElement('div');
             seatDiv.className = 'seat ' + seat.status;
             seatDiv.dataset.seatId = seat.id;
+            seatDiv.dataset.isReturn = isReturn;
             seatDiv.textContent = seat.number;
 
             if (seat.status === 'available') {
-                seatDiv.onclick = () => toggleSeat(seat.id);
+                seatDiv.onclick = () => toggleSeat(seat.id, isReturn);
             }
 
             return seatDiv;
         }
 
-        async function toggleSeat(seatId) {
-            const index = selectedSeats.indexOf(seatId);
+        // Load return flight seats
+        async function loadSeats2() {
+            if (!flight2Id) {
+                return;
+            }
+            
+            showLoading(true);
+            try {
+                const response = await fetch(`/api/seats/available?flight_id=${flight2Id}&seat_class=${seatClass}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    renderSeats2(data.seats);
+                } else {
+                    showNotification('Error loading return flight seats: ' + data.error, 'error');
+                }
+            } catch (error) {
+                console.error('loadSeats2 error:', error);
+                showNotification('Failed to load return flight seats', 'error');
+            }
+            showLoading(false);
+        }
+
+        function renderSeats2(seats) {
+            seatData2 = {};
+            seats.forEach(seat => {
+                seatData2[seat.id] = seat;
+            });
+
+            const seatRows2 = document.getElementById('seatRows2');
+            if (!seatRows2) return;
+            seatRows2.innerHTML = '';
+
+            // Organize seats by row
+            const rowMap = {};
+            seats.forEach(seat => {
+                const row = seat.number.match(/\d+/)[0];
+                if (!rowMap[row]) {
+                    rowMap[row] = {};
+                }
+                const col = seat.number.match(/[A-Z]/)[0];
+                rowMap[row][col] = seat;
+            });
+
+            // Render rows
+            const sortedRows = Object.keys(rowMap).sort((a, b) => parseInt(a) - parseInt(b));
+
+            sortedRows.forEach(rowNum => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'seat-row';
+
+                // Row number left
+                const rowLabelLeft = document.createElement('div');
+                rowLabelLeft.className = 'row-number';
+                rowLabelLeft.textContent = rowNum;
+                rowDiv.appendChild(rowLabelLeft);
+
+                // Left seats (A, B, C)
+                const leftGroup = document.createElement('div');
+                leftGroup.className = 'seat-group';
+                ['A', 'B', 'C'].forEach(col => {
+                    if (rowMap[rowNum][col]) {
+                        leftGroup.appendChild(createSeatElement(rowMap[rowNum][col], true));
+                    }
+                });
+                rowDiv.appendChild(leftGroup);
+
+                // Aisle
+                const aisle = document.createElement('div');
+                aisle.className = 'aisle-space';
+                rowDiv.appendChild(aisle);
+
+                // Right seats (D, E, F)
+                const rightGroup = document.createElement('div');
+                rightGroup.className = 'seat-group';
+                ['D', 'E', 'F'].forEach(col => {
+                    if (rowMap[rowNum][col]) {
+                        rightGroup.appendChild(createSeatElement(rowMap[rowNum][col], true));
+                    }
+                });
+                rowDiv.appendChild(rightGroup);
+
+                // Row number right
+                const rowLabelRight = document.createElement('div');
+                rowLabelRight.className = 'row-number';
+                rowLabelRight.textContent = rowNum;
+                rowDiv.appendChild(rowLabelRight);
+
+                seatRows2.appendChild(rowDiv);
+            });
+        }
+
+        async function toggleSeat(seatId, isReturn = false) {
+            const seatsArray = isReturn ? selectedSeats2 : selectedSeats;
+            const index = seatsArray.indexOf(seatId);
+            const isReturnStr = isReturn.toString();
+            // Need to be careful with isReturn selector, better to use dataset property check or separate container
+            let seatElement;
+            if (isReturn) {
+                 seatElement = document.querySelector(`#seatRows2 .seat[data-seat-id="${seatId}"]`);
+            } else {
+                 seatElement = document.querySelector(`#seatRows .seat[data-seat-id="${seatId}"]`);
+            }
 
             if (index > -1) {
                 // Deselect
-                selectedSeats.splice(index, 1);
-                document.querySelector(`[data-seat-id="${seatId}"]`).classList.remove('selected');
+                seatsArray.splice(index, 1);
+                if (seatElement) seatElement.classList.remove('selected');
 
                 // Release reservation
                 await releaseSeat(seatId);
             } else {
                 // Select
-                selectedSeats.push(seatId);
-                document.querySelector(`[data-seat-id="${seatId}"]`).classList.add('selected');
+                seatsArray.push(seatId);
+                if (seatElement) seatElement.classList.add('selected');
 
                 // Reserve seat
                 await reserveSeat(seatId);
@@ -326,11 +587,22 @@
                 const data = await response.json();
                 if (!data.success) {
                     showNotification('Failed to reserve seat: ' + data.error, 'error');
+                    
                     // Remove from selection if reservation failed
-                    const index = selectedSeats.indexOf(seatId);
+                    const isReturn = selectedSeats2.includes(seatId);
+                    const seatsArray = isReturn ? selectedSeats2 : selectedSeats;
+                    const index = seatsArray.indexOf(seatId);
+                    
                     if (index > -1) {
-                        selectedSeats.splice(index, 1);
-                        document.querySelector(`[data-seat-id="${seatId}"]`).classList.remove('selected');
+                        seatsArray.splice(index, 1);
+                        // Find element again to remove class
+                         let seatElement;
+                        if (isReturn) {
+                             seatElement = document.querySelector(`#seatRows2 .seat[data-seat-id="${seatId}"]`);
+                        } else {
+                             seatElement = document.querySelector(`#seatRows .seat[data-seat-id="${seatId}"]`);
+                        }
+                        if (seatElement) seatElement.classList.remove('selected');
                     }
                 }
             } catch (error) {
@@ -353,49 +625,125 @@
         }
 
         function updatePriceSummary() {
-            const count = selectedSeats.length;
-            document.getElementById('selectedCount').textContent = count;
-
             const seatsList = document.getElementById('selectedSeatsList');
             seatsList.innerHTML = '';
+            let totalPrice = 0;
+            let totalCount = 0;
 
-            if (count > 0) {
-                let totalPrice = 0;
-                selectedSeats.forEach(seatId => {
-                    if (seatData[seatId]) {
-                        const seat = seatData[seatId];
+            // Process outbound seats
+            selectedSeats.forEach(seatId => {
+                if (seatData[seatId]) {
+                    const seat = seatData[seatId];
+                    totalPrice += seat.price;
+                    totalCount++;
+                    
+                    const seatItem = document.createElement('div');
+                    seatItem.className = 'selected-seat-item';
+                    seatItem.innerHTML = `
+                        <span class="seat-number">Outbound: ${seat.number}</span>
+                        <span class="seat-price">₹ ${seat.price}</span>
+                    `;
+                    seatsList.appendChild(seatItem);
+                }
+            });
+
+            // Process return seats
+            if (isRoundTrip) {
+                selectedSeats2.forEach(seatId => {
+                    if (seatData2[seatId]) {
+                        const seat = seatData2[seatId];
                         totalPrice += seat.price;
+                        totalCount++;
                         
                         const seatItem = document.createElement('div');
                         seatItem.className = 'selected-seat-item';
                         seatItem.innerHTML = `
-                            <span class="seat-number">Seat ${seat.number}</span>
+                            <span class="seat-number">Return: ${seat.number}</span>
                             <span class="seat-price">₹ ${seat.price}</span>
                         `;
                         seatsList.appendChild(seatItem);
                     }
                 });
+            }
+            
+            // Update counts for both sections if elements exist
+            if (document.getElementById('selectedCount')) {
+                document.getElementById('selectedCount').textContent = selectedSeats.length;
+            }
+            if (document.getElementById('selectedCount2')) {
+                document.getElementById('selectedCount2').textContent = selectedSeats2.length;
+            }
 
+            if (totalCount > 0) {
                 document.getElementById('totalPrice').textContent = totalPrice.toFixed(2);
                 document.getElementById('priceSummary').style.display = 'block';
-                document.getElementById('pendingText').style.display = 'none';
+                // Hide pending text for both sections if they have selection
+                 if (selectedSeats.length > 0 && document.getElementById('pendingText')) {
+                    document.getElementById('pendingText').style.display = 'none';
+                } else if (document.getElementById('pendingText')) {
+                    document.getElementById('pendingText').style.display = 'inline';
+                }
+                
+                if (selectedSeats2.length > 0 && document.getElementById('pendingText2')) {
+                    document.getElementById('pendingText2').style.display = 'none';
+                } else if (document.getElementById('pendingText2')) {
+                    document.getElementById('pendingText2').style.display = 'inline';
+                }
             } else {
                 document.getElementById('priceSummary').style.display = 'none';
-                document.getElementById('pendingText').style.display = 'inline';
+                if(document.getElementById('pendingText')) document.getElementById('pendingText').style.display = 'inline';
+                if(document.getElementById('pendingText2')) document.getElementById('pendingText2').style.display = 'inline';
             }
         }
 
         function updateConfirmButton() {
             const confirmBtn = document.getElementById('confirmBtn');
-            confirmBtn.disabled = selectedSeats.length === 0;
+            const confirmSection = document.getElementById('confirmSection');
+            
+            // For round trip: require seats from BOTH flights
+            // For one-way: require seats from outbound only
+            let canConfirm = false;
+            
+            if (isRoundTrip) {
+                // Both outbound AND return must have at least one seat selected
+                canConfirm = selectedSeats.length > 0 && selectedSeats2.length > 0;
+            } else {
+                // One-way: just need outbound seats
+                canConfirm = selectedSeats.length > 0;
+            }
+            
+            if (confirmBtn) {
+                confirmBtn.disabled = !canConfirm;
+            }
+            
+            // Show/hide confirm section based on selection status
+            if (confirmSection) {
+                confirmSection.style.display = canConfirm ? 'block' : 'none';
+            }
+            
+            const confirmBtn2 = document.getElementById('confirmBtn2');
+            if (confirmBtn2) {
+                confirmBtn2.disabled = selectedSeats2.length === 0;
+            }
         }
 
         function clearSelection() {
+            // Clear outbound
             selectedSeats.forEach(seatId => {
-                document.querySelector(`[data-seat-id="${seatId}"]`).classList.remove('selected');
+                const el = document.querySelector(`#seatRows .seat[data-seat-id="${seatId}"]`);
+                if(el) el.classList.remove('selected');
                 releaseSeat(seatId);
             });
             selectedSeats = [];
+            
+            // Clear return
+            selectedSeats2.forEach(seatId => {
+                const el = document.querySelector(`#seatRows2 .seat[data-seat-id="${seatId}"]`);
+                if(el) el.classList.remove('selected');
+                releaseSeat(seatId);
+            });
+            selectedSeats2 = [];
+            
             updatePriceSummary();
             updateConfirmButton();
             showNotification('Selection cleared', 'success');
@@ -403,15 +751,25 @@
 
         async function confirmSeats() {
             if (selectedSeats.length === 0) {
-                showNotification('Please select at least one seat', 'error');
+                showNotification('Please select at least one seat for outbound flight', 'error');
+                if(currentTab !== 'outbound') switchTab('outbound');
                 return;
+            }
+            
+            if (isRoundTrip && selectedSeats2.length === 0) {
+                 showNotification('Please select at least one seat for return flight', 'error');
+                 if(currentTab !== 'return') switchTab('return');
+                 return;
             }
 
             showLoading(true);
 
             try {
+                // Combine seats
+                const allSeats = [...selectedSeats, ...selectedSeats2];
+                
                 // Store selected seats in session storage for the booking page
-                sessionStorage.setItem('selectedSeats', JSON.stringify(selectedSeats));
+                sessionStorage.setItem('selectedSeats', JSON.stringify(allSeats));
                 
                 showNotification('Seats confirmed! Proceeding to booking...', 'success');
                 
@@ -420,7 +778,7 @@
                     flight1Id: flightId,
                     flight1Date: '{{ depart_date }}',
                     seatClass: '{{ seat_class|title }}',
-                    selectedSeats: selectedSeats.join(',')
+                    selectedSeats: allSeats.join(',')
                 });
                 
                 {% if round_trip and flight2_id %}
@@ -459,9 +817,11 @@
 
         // Auto-refresh seats every 30 seconds
         setInterval(() => {
-            if (selectedSeats.length === 0) {
+            if (selectedSeats.length === 0 && selectedSeats2.length === 0) {
                 loadSeats();
+                if(isRoundTrip) loadSeats2();
             }
         }, 30000);
     </script>
+
 {% endblock %}

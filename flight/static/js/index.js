@@ -60,22 +60,23 @@ function flight_to(event, focus=false) {
     if(!focus) {
         input.dataset.value = '';
     }
-    if(input.value.length > 0) {
-        fetch('query/places/'+input.value)
-        .then(response => response.json())
-        .then(places => {
-            list.innerHTML = '';
-            places.forEach(element => {
-                let div = document.createElement('div');
-                div.setAttribute('class', 'each_places_to_list');
-                div.classList.add('places__list');
-                div.setAttribute('onclick', "selectplace(this)");
-                div.setAttribute('data-value', element.code);
-                div.innerText = `${element.city} (${element.country})`;
-                list.append(div);
-            });
+    
+    // Fetch suggestions - either based on input or random on focus
+    let query = input.value.length > 0 ? input.value : '_random';
+    fetch('query/places/' + query)
+    .then(response => response.json())
+    .then(places => {
+        list.innerHTML = '';
+        places.forEach(element => {
+            let div = document.createElement('div');
+            div.setAttribute('class', 'each_places_to_list');
+            div.classList.add('places__list');
+            div.setAttribute('onclick', "selectplace(this)");
+            div.setAttribute('data-value', element.code);
+            div.innerText = `${element.city} (${element.country})`;
+            list.append(div);
         });
-    }
+    });
 }
 
 function flight_from(event, focus=false) {
@@ -85,22 +86,23 @@ function flight_from(event, focus=false) {
     if(!focus) {
         input.dataset.value = '';
     }
-    if(input.value.length > 0) {
-        fetch('query/places/'+input.value)
-        .then(response => response.json())
-        .then(places => {
-            list.innerHTML = '';
-            places.forEach(element => {
-                let div = document.createElement('div');
-                div.setAttribute('class', 'each_places_from_list');
-                div.classList.add('places__list');
-                div.setAttribute('onclick', "selectplace(this)");
-                div.setAttribute('data-value', element.code);
-                div.innerText = `${element.city} (${element.country})`;
-                list.append(div);
-            });
+    
+    // Fetch suggestions - either based on input or random on focus
+    let query = input.value.length > 0 ? input.value : '_random';
+    fetch('query/places/' + query)
+    .then(response => response.json())
+    .then(places => {
+        list.innerHTML = '';
+        places.forEach(element => {
+            let div = document.createElement('div');
+            div.setAttribute('class', 'each_places_from_list');
+            div.classList.add('places__list');
+            div.setAttribute('onclick', "selectplace(this)");
+            div.setAttribute('data-value', element.code);
+            div.innerText = `${element.city} (${element.country})`;
+            list.append(div);
         });
-    }
+    });
 }
 
 function trip_type() {

@@ -13,11 +13,21 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 from pathlib import Path
 import os
 
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Detect if running on Google App Engine
 IS_GAE = os.environ.get('GAE_APPLICATION', None) is not None
+
+# Amadeus Flight API Configuration
+AMADEUS_CLIENT_ID = os.environ.get('API_Key', '')
+AMADEUS_CLIENT_SECRET = os.environ.get('API_Secret', '')
+AMADEUS_ENABLED = os.environ.get('AMADEUS_ENABLED', 'true').lower() == 'true'
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/

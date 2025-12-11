@@ -24,7 +24,7 @@ h5{
     padding: 13px;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, .15);
-    overflow: hidden;
+    overflow: visible;
 }
 
 .col-8 > div > hr, .col-4 > div > hr{
@@ -359,4 +359,113 @@ h5{
     .media-airline{
         display: block;
     }
+}
+
+/* ===== Coupon Dropdown Styles ===== */
+.coupon-input-wrapper {
+    position: relative;
+}
+
+.coupon-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e0e0e0;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-5px);
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+
+.coupon-input-wrapper:hover .coupon-dropdown,
+.coupon-input-wrapper:focus-within .coupon-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.coupon-item {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.coupon-item:last-child {
+    border-bottom: none;
+}
+
+.coupon-item:hover {
+    background: #f8f9fa;
+}
+
+.coupon-item-code {
+    font-weight: 600;
+    font-size: 0.9em;
+    color: #333;
+    font-family: monospace;
+    letter-spacing: 0.5px;
+}
+
+.coupon-item-badge {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.7em;
+    font-weight: 600;
+}
+
+.coupon-applied-msg {
+    margin-top: 10px;
+    padding: 10px 15px;
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.coupon-success {
+    color: #155724;
+    font-weight: 500;
+}
+
+.coupon-success #savings-amount {
+    font-weight: 700;
+    color: #28a745;
+}
+
+.remove-coupon {
+    color: #dc3545;
+    font-size: 0.85em;
+    text-decoration: underline;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.remove-coupon:hover {
+    color: #a71d2a;
+}
+
+/* Discount applied styling */
+.total-fare-value.discounted {
+    color: #28a745;
+}
+
+.original-price {
+    text-decoration: line-through;
+    color: #999;
+    font-size: 0.85em;
+    margin-right: 8px;
 }

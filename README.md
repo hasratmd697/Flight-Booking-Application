@@ -1,100 +1,214 @@
-# Flight Booking App
+# ✈️ Flight Booking Application
 
-Hi! This is my flight booking project that I made using Python and Django. Its a simple website where you can book flights.
+A full-featured flight booking web application built with Django, featuring real-time flight search via the Amadeus API, interactive seat selection, dynamic pricing, and secure payment processing.
 
-## What Can This App Do?
+![Django](https://img.shields.io/badge/Django-3.1.2-green)
+![Python](https://img.shields.io/badge/Python-3.8+-blue)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
-### 1. Search for Flights
+## 🌟 Features
 
-- You can search flights from one city to another
-- Pick one-way or round-trip
-- Choose travel date (cant pick past dates)
-- Select seat class (economy, business, first class)
+### 🔍 Flight Search
 
-### 2. Book Tickets
+- **Real-time API Integration** - Fetches live flight data from Amadeus Flight API
+- **One-way & Round-trip Support** - Book single or return journeys
+- **Flexible Date Selection** - Pick travel dates up to 3 months in advance
+- **Multiple Seat Classes** - Economy, Business, and First Class options
+- **Smart Filtering** - Filter by price, departure time, and arrival time
 
-- Register and login to your account
-- Book a flight after searching
-- Get a booking reference number
-- See all your bookings in one place
+### 💺 Interactive Seat Selection
 
-### 3. Pick Your Seat
+- **Visual Seat Map** - Airline-style seat layout for both outbound and return flights
+- **Real-time Availability** - Seats update live with concurrent booking prevention
+- **Seat Class Indicators** - Color-coded seats (available, selected, booked, premium)
+- **Round-trip Flow** - Select seats for outbound first, then return flight
+- **Auto-refresh** - Seat availability updates every 30 seconds
 
-- See a seat map like in real airlines
-- Pick which seat you want
-- Seats are color coded by class
-- If someone else is booking same seat it wont let you
+### 💳 Payment & Coupons
 
-### 4. Make Payment
+- **Credit Card Validation** - Luhn algorithm card number validation
+- **Expiry Date Check** - Prevents expired cards
+- **CVV Verification** - 3-digit security code validation
+- **Coupon System** - Apply bank coupons (HDFC10, ICICI15, SBI500) for discounts
+- **Hover Dropdown** - Quick coupon selection with discount preview
 
-- Enter your card details to pay
-- Card number validation
-- Expiry date check
-- CVV validation
+### 💰 Dynamic Pricing Algorithm
 
-### 5. Dynamic Pricing
+Prices automatically adjust based on demand and booking timing:
 
-- Price changes based on how full the flight is
-- Early booking = cheaper tickets
-- Last minute booking = more expensive
-- This is how real airlines work too
+**📊 Occupancy-Based Multipliers (Seat Fill Rate):**
 
-### 6. User Accounts
+| Occupancy | Multiplier | Effect                          |
+| --------- | ---------- | ------------------------------- |
+| < 30%     | 0.85x      | 15% discount (attract bookings) |
+| 30-50%    | 1.00x      | Base price                      |
+| 50-70%    | 1.15x      | 15% increase                    |
+| 70-85%    | 1.30x      | 30% increase (high demand)      |
+| > 85%     | 1.50x      | 50% surge pricing               |
 
-- Create your own account
-- Login and logout
-- View your past bookings
-- Cancel tickets if you want
+**⏱️ Time-Based Multipliers (Days to Departure):**
 
-## Technologies I Used
+| Days  | Multiplier | Effect              |
+| ----- | ---------- | ------------------- |
+| > 30  | 0.90x      | Early bird discount |
+| 15-30 | 1.00x      | Normal pricing      |
+| 7-14  | 1.10x      | Moderate urgency    |
+| 3-6   | 1.20x      | Last week premium   |
+| < 3   | 1.30x      | Last minute surge   |
 
-- Python (the coding language)
-- Django (a framework for making websites)
-- HTML and CSS (for the website look)
-- JavaScript (for interactive stuff)
-- SQLite/PostgreSQL (for storing data)
+**Formula:** `Final Price = Base Price × Occupancy Multiplier × Time Multiplier`
 
-## How to Run This Project
+**Example:** ₹5,000 ticket | 90% seats full | 1 day before departure  
+`₹5,000 × 1.50 × 1.30 = ₹9,750`
 
-1. Download the project
-2. Open terminal in the folder
-3. Create a virtual environment: `python -m venv .venv`
-4. Activate it: `.\.venv\Scripts\activate` (on Windows)
-5. Install stuff: `pip install -r requirements.txt`
-6. Run migrations: `python manage.py migrate`
-7. Start server: `python manage.py runserver`
-8. Open browser and go to `http://127.0.0.1:8000`
+**API Endpoint:** `/api/pricing/flight?flight_id=X&seat_class=economy&departure_date=YYYY-MM-DD`
 
-## Live Demo
+### 👤 User Management
 
-The application is deployed on Google App Engine with Cloud SQL PostgreSQL.
+- **Registration & Login** - Secure authentication system
+- **Booking History** - View all past and upcoming flights
+- **Ticket Cancellation** - Cancel bookings when needed
+- **PDF Tickets** - Download printable booking confirmations
 
-**Live URL:** https://flight-app-2025.el.r.appspot.com
+## 🛠️ Technology Stack
 
-## Folder Structure
+| Category       | Technology                      |
+| -------------- | ------------------------------- |
+| Backend        | Python 3.8+, Django 3.1.2       |
+| Frontend       | HTML5, CSS3, JavaScript         |
+| Database       | SQLite (dev), PostgreSQL (prod) |
+| API            | Amadeus Flight Offers API       |
+| PDF Generation | xhtml2pdf                       |
+| Deployment     | Google Cloud App Engine         |
 
-- `capstone/` - main django settings
-- `flight/` - all the flight booking code
-- `Data/` - csv files with airport data
-- `templates/` - html files
-- `static/` - css and javascript files
+## 🚀 Quick Start
 
-## What I Learned
+### Prerequisites
 
-- How to make a website with Django
-- How databases work
-- User authentication
-- Form validation
-- CSS styling
+- Python 3.8 or higher
+- pip (Python package manager)
+- Git
 
-## Future Ideas
+### Installation
 
-- Add email notifications
-- Connect real payment gateway
-- Make a mobile app
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/Flight-Booking-Application.git
+cd Flight-Booking-Application
+
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+# Windows:
+.venv\Scripts\activate
+# macOS/Linux:
+source .venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up environment variables (create .env file)
+# AMADEUS_API_KEY=your_api_key
+# AMADEUS_API_SECRET=your_api_secret
+
+# Run database migrations
+python manage.py migrate
+
+# Start development server
+python manage.py runserver
+```
+
+Open your browser and navigate to `http://127.0.0.1:8000`
+
+## 📁 Project Structure
+
+```
+Flight-Booking-Application/
+├── capstone/              # Django project settings
+│   ├── settings.py        # Configuration
+│   ├── urls.py            # Main URL routing
+│   └── utils.py           # PDF & ticket utilities
+├── flight/                # Main application
+│   ├── templates/         # HTML templates
+│   ├── static/            # CSS, JS, images
+│   ├── models.py          # Database models
+│   ├── views.py           # View controllers
+│   ├── flight_api.py      # Amadeus API integration
+│   ├── seat_manager.py    # Seat reservation logic
+│   └── dynamic_pricing.py # Price calculation
+├── Data/                  # Airport & flight data CSVs
+├── requirements.txt       # Python dependencies
+└── README.md              # This file
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Create a `.env` file in the project root:
+
+```env
+# Amadeus API (for live flight data)
+AMADEUS_API_KEY=your_amadeus_api_key
+AMADEUS_API_SECRET=your_amadeus_api_secret
+
+# Database (for production)
+DATABASE_URL=postgres://user:pass@host:port/dbname
+
+# Security
+SECRET_KEY=your_django_secret_key
+DEBUG=True
+```
+
+## 📸 Screenshots
+
+### Home Page
+
+Search for flights with origin, destination, dates, and class selection.
+
+### Search Results
+
+View available flights with prices, times, and duration.
+
+### Seat Selection
+
+Interactive seat map with real-time availability.
+
+### Payment
+
+Secure checkout with coupon support.
+
+## 🌐 Live Demo
+
+**Production URL:** https://flight-app-2025.el.r.appspot.com
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📝 Recent Updates
+
+- ✅ **Amadeus API Integration** - Live flight search
+- ✅ **Round-trip Seat Selection** - Select seats for both legs
+- ✅ **Coupon System** - Bank card discounts (HDFC, ICICI, SBI)
+- ✅ **Payment Validation** - Server-side card validation
+- ✅ **Indian Rupee (₹)** - Proper currency display
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 👨‍💻 Author
+
+**Hasrat Hussain**
+
+Infosys Internship Project - 2025
 
 ---
 
-Made by Hasrat Hussain
-
-This is a Infosys Internship project. Feel free to use it and learn from it!
+⭐ If you found this project helpful, please give it a star!

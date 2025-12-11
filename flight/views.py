@@ -25,6 +25,92 @@ from flight.seat_manager import (
     create_seats_for_flight
 )
 from flight.dynamic_pricing import get_dynamic_price, get_flight_prices_with_dynamic
+from flight.flight_api import AmadeusFlightAPI, search_flights_api
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class QuerySetLike(list):
+    """
+    A list subclass that mimics Django QuerySet behavior for templates.
+    Allows template access like {{ flights.all.0.field }}
+    """
+    @property
+    def all(self):
+        return self
+    
+    def first(self):
+        return self[0] if len(self) > 0 else None
+    
+    def last(self):
+        return self[-1] if len(self) > 0 else None
+
+
+class APIFlightWrapper:
+    """
+    Wrapper class that makes API flight offers compatible with existing templates.
+    Mimics the Flight model interface expected by search.html template.
+    """
+    def __init__(self, api_offer, origin_place, destination_place):
+        self.id = f"api_{api_offer.id}"  # Prefix to identify API results
+        self.airline = api_offer.airline
+        self.plane = api_offer.flight_number
+        self.depart_time = api_offer.depart_time
+        self.arrival_time = api_offer.arrival_time
+        self.duration = api_offer.duration
+        self.origin = origin_place
+        self.destination = destination_place
+        self.economy_fare = api_offer.economy_fare
+        self.business_fare = api_offer.business_fare
+        self.first_fare = api_offer.first_fare
+        self.stops = api_offer.stops
+        self._api_offer = api_offer  # Keep reference to original
+    
+    def __str__(self):
+        return f"{self.origin.code} -> {self.destination.code} ({self.airline})"
+
+
+def search_flights_with_api(origin, destination, departure_date, seat_class='economy'):
+    """
+    Search flights using API first, with database fallback.
+    
+    Args:
+        origin: Place object for origin
+        destination: Place object for destination
+        departure_date: datetime object for departure date
+        seat_class: 'economy', 'business', or 'first'
+    
+    Returns:
+        tuple: (flights_list, is_from_api)
+    """
+    api = AmadeusFlightAPI()
+    
+    if api.is_available():
+        try:
+            date_str = departure_date.strftime('%Y-%m-%d')
+            api_results = api.search_flights(
+                origin.code, 
+                destination.code, 
+                date_str, 
+                seat_class
+            )
+            
+            if api_results:
+                # Convert API results to template-compatible wrappers
+                wrapped_flights = [
+                    APIFlightWrapper(offer, origin, destination) 
+                    for offer in api_results
+                ]
+                logger.info(f"API returned {len(wrapped_flights)} flights for {origin.code}->{destination.code}")
+                return wrapped_flights, True
+            else:
+                logger.info(f"API returned no results for {origin.code}->{destination.code}, falling back to database")
+        except Exception as e:
+            logger.error(f"API search failed: {e}, falling back to database")
+    
+    return None, False
+
 
 try:
     if len(Week.objects.all()) == 0:
@@ -32,12 +118,9 @@ try:
 
     if len(Place.objects.all()) == 0:
         addPlaces()
-
-    if len(Flight.objects.all()) == 0:
-        print("Do you want to add flights in the Database? (y/n)")
-        if input().lower() in ['y', 'yes']:
-            addDomesticFlights()
-            addInternationalFlights()
+    
+    # Flight seeding disabled - using Amadeus API for dynamic flight data
+    # addDomesticFlights() and addInternationalFlights() are no longer used
 except:
     pass
 
@@ -145,13 +228,33 @@ def logout_view(request):
     return HttpResponseRedirect(reverse("index"))
 
 def query(request, q):
-    places = Place.objects.all()
+    import random
+    places = list(Place.objects.all())
+    q = q.lower().strip()
+    
+    # Handle random suggestions on focus
+    if q == '_random':
+        # Shuffle and return 8 random airports
+        random.shuffle(places)
+        sample = places[:8]
+        return JsonResponse([{'code': p.code, 'city': p.city, 'country': p.country} for p in sample], safe=False)
+    
+    # Filter places based on search query
     filters = []
-    q = q.lower()
     for place in places:
         if (q in place.city.lower()) or (q in place.airport.lower()) or (q in place.code.lower()) or (q in place.country.lower()):
             filters.append(place)
-    return JsonResponse([{'code':place.code, 'city':place.city, 'country': place.country} for place in filters], safe=False)
+    
+    results = [{'code': place.code, 'city': place.city, 'country': place.country} for place in filters]
+    
+    # If query is exactly 3 letters and not already in results, suggest it as a custom code
+    if len(q) == 3 and q.isalpha():
+        q_upper = q.upper()
+        if not any(r['code'] == q_upper for r in results):
+            # Add the custom code as a suggestion
+            results.insert(0, {'code': q_upper, 'city': f'{q_upper} (Any IATA Code)', 'country': 'Use this code directly'})
+    
+    return JsonResponse(results, safe=False)
 
 @csrf_exempt
 def flight(request):
@@ -163,107 +266,136 @@ def flight(request):
     return_date = None
     seat = request.GET.get('SeatClass')
     
-    # Validate origin and destination codes
-    try:
-        origin = Place.objects.get(code=o_place.upper())
-    except Place.DoesNotExist:
-        # Suggest alternatives for common city codes
-        suggestions = {
-            'NYC': 'JFK, LGA, or EWR (New York area airports)',
-            'TOKYO': 'NRT or HND (Tokyo airports)',
-            'LONDON': 'LHR, LGW, or STN (London airports)',
-        }
-        suggestion = suggestions.get(o_place.upper(), '')
-        error_msg = f"Airport code '{o_place.upper()}' not found."
-        if suggestion:
-            error_msg += f" Did you mean {suggestion}?"
+    # Validate origin and destination codes - accept any valid 3-letter IATA code
+    o_code = o_place.upper().strip()
+    d_code = d_place.upper().strip()
+    
+    # Validate IATA codes (3 letters)
+    if len(o_code) != 3 or not o_code.isalpha():
         return render(request, 'flight/error.html', {
             'error_title': 'Invalid Origin Airport',
-            'error_message': error_msg,
+            'error_message': f"'{o_code}' is not a valid airport code. Please enter a 3-letter IATA code (e.g., JFK, LAX, LHR).",
             'show_search': True
         })
     
-    try:
-        destination = Place.objects.get(code=d_place.upper())
-    except Place.DoesNotExist:
-        suggestions = {
-            'NYC': 'JFK, LGA, or EWR (New York area airports)',
-            'TOKYO': 'NRT or HND (Tokyo airports)',
-            'LONDON': 'LHR, LGW, or STN (London airports)',
-        }
-        suggestion = suggestions.get(d_place.upper(), '')
-        error_msg = f"Airport code '{d_place.upper()}' not found."
-        if suggestion:
-            error_msg += f" Did you mean {suggestion}?"
+    if len(d_code) != 3 or not d_code.isalpha():
         return render(request, 'flight/error.html', {
             'error_title': 'Invalid Destination Airport',
-            'error_message': error_msg,
+            'error_message': f"'{d_code}' is not a valid airport code. Please enter a 3-letter IATA code (e.g., JFK, LAX, LHR).",
             'show_search': True
         })
+    
+    # Get or create Place objects for any valid IATA code
+    origin, _ = Place.objects.get_or_create(
+        code=o_code,
+        defaults={
+            'city': o_code,  # Use code as city name if unknown
+            'airport': f'{o_code} Airport',
+            'country': 'Unknown'
+        }
+    )
+    
+    destination, _ = Place.objects.get_or_create(
+        code=d_code,
+        defaults={
+            'city': d_code,
+            'airport': f'{d_code} Airport',
+            'country': 'Unknown'
+        }
+    )
     
     if trip_type == '2':
         returndate = request.GET.get('ReturnDate')
         return_date = datetime.strptime(returndate, "%Y-%m-%d")
-        flightday2 = Week.objects.get(number=return_date.weekday()) ##
         origin2 = destination   ##
         destination2 = origin  ##
 
-    flightday = Week.objects.get(number=depart_date.weekday())
-    if seat == 'economy':
-        flights = Flight.objects.filter(depart_day=flightday,origin=origin,destination=destination).exclude(economy_fare=0).order_by('economy_fare')
-        try:
-            max_price = flights.last().economy_fare
-            min_price = flights.first().economy_fare
-        except:
-            max_price = 0
-            min_price = 0
-
-        if trip_type == '2':    ##
-            flights2 = Flight.objects.filter(depart_day=flightday2,origin=origin2,destination=destination2).exclude(economy_fare=0).order_by('economy_fare')    ##
-            try:
-                max_price2 = flights2.last().economy_fare   ##
-                min_price2 = flights2.first().economy_fare  ##
-            except:
-                max_price2 = 0  ##
-                min_price2 = 0  ##
+    # Initialize variables
+    flights = []
+    flights2 = []
+    max_price = 0
+    min_price = 0
+    max_price2 = 0
+    min_price2 = 0
+    
+    # API-only mode - fetch flights from Amadeus API
+    api_flights, from_api = search_flights_with_api(origin, destination, depart_date, seat)
+    
+    if api_flights:
+        # Use API results
+        flights = api_flights
+        # Sort by fare based on seat class and wrap in QuerySetLike for template compatibility
+        if seat == 'economy':
+            flights = QuerySetLike(sorted(flights, key=lambda f: f.economy_fare))
+            fares = [f.economy_fare for f in flights]
+        elif seat == 'business':
+            flights = QuerySetLike(sorted(flights, key=lambda f: f.business_fare))
+            fares = [f.business_fare for f in flights]
+        else:  # first
+            flights = QuerySetLike(sorted(flights, key=lambda f: f.first_fare))
+            fares = [f.first_fare for f in flights]
+        
+        if fares:
+            min_price = min(fares)
+            max_price = max(fares)
+        
+        # Handle return flight for round trip
+        if trip_type == '2':
+            api_flights2, _ = search_flights_with_api(origin2, destination2, return_date, seat)
+            if api_flights2:
+                # Append suffix to return flight IDs to prevent collision with outbound flights
+                for f in api_flights2:
+                    f.id = f"{f.id}_return"
+                    
+                flights2 = api_flights2
+                if seat == 'economy':
+                    flights2 = QuerySetLike(sorted(flights2, key=lambda f: f.economy_fare))
+                    fares2 = [f.economy_fare for f in flights2]
+                elif seat == 'business':
+                    flights2 = QuerySetLike(sorted(flights2, key=lambda f: f.business_fare))
+                    fares2 = [f.business_fare for f in flights2]
+                else:
+                    flights2 = QuerySetLike(sorted(flights2, key=lambda f: f.first_fare))
+                    fares2 = [f.first_fare for f in flights2]
                 
-    elif seat == 'business':
-        flights = Flight.objects.filter(depart_day=flightday,origin=origin,destination=destination).exclude(business_fare=0).order_by('business_fare')
-        try:
-            max_price = flights.last().business_fare
-            min_price = flights.first().business_fare
-        except:
-            max_price = 0
-            min_price = 0
+                if fares2:
+                    min_price2 = min(fares2)
+                    max_price2 = max(fares2)
 
-        if trip_type == '2':    ##
-            flights2 = Flight.objects.filter(depart_day=flightday2,origin=origin2,destination=destination2).exclude(business_fare=0).order_by('business_fare')    ##
-            try:
-                max_price2 = flights2.last().business_fare   ##
-                min_price2 = flights2.first().business_fare  ##
-            except:
-                max_price2 = 0  ##
-                min_price2 = 0  ##
+    # Store API flights in session for later retrieval when booking
+    api_flights_data = {}
+    for f in flights:
+        if hasattr(f, '_api_offer'):
+            api_flights_data[f.id] = {
+                'airline': f.airline,
+                'plane': f.plane,
+                'depart_time': f.depart_time.isoformat() if hasattr(f.depart_time, 'isoformat') else str(f.depart_time),
+                'arrival_time': f.arrival_time.isoformat() if hasattr(f.arrival_time, 'isoformat') else str(f.arrival_time),
+                'duration_seconds': int(f.duration.total_seconds()),
+                'origin_code': f.origin.code,
+                'destination_code': f.destination.code,
+                'economy_fare': float(f.economy_fare),
+                'business_fare': float(f.business_fare),
+                'first_fare': float(f.first_fare),
+            }
+    # Also store return flights if round trip
+    if trip_type == '2' and flights2:
+        for f in flights2:
+            if hasattr(f, '_api_offer'):
+                api_flights_data[f.id] = {
+                    'airline': f.airline,
+                    'plane': f.plane,
+                    'depart_time': f.depart_time.isoformat() if hasattr(f.depart_time, 'isoformat') else str(f.depart_time),
+                    'arrival_time': f.arrival_time.isoformat() if hasattr(f.arrival_time, 'isoformat') else str(f.arrival_time),
+                    'duration_seconds': int(f.duration.total_seconds()),
+                    'origin_code': f.origin.code,
+                    'destination_code': f.destination.code,
+                    'economy_fare': float(f.economy_fare),
+                    'business_fare': float(f.business_fare),
+                    'first_fare': float(f.first_fare),
+                }
+    request.session['api_flights'] = api_flights_data
 
-    elif seat == 'first':
-        flights = Flight.objects.filter(depart_day=flightday,origin=origin,destination=destination).exclude(first_fare=0).order_by('first_fare')
-        try:
-            max_price = flights.last().first_fare
-            min_price = flights.first().first_fare
-        except:
-            max_price = 0
-            min_price = 0
-            
-        if trip_type == '2':    ##
-            flights2 = Flight.objects.filter(depart_day=flightday2,origin=origin2,destination=destination2).exclude(first_fare=0).order_by('first_fare')
-            try:
-                max_price2 = flights2.last().first_fare   ##
-                min_price2 = flights2.first().first_fare  ##
-            except:
-                max_price2 = 0  ##
-                min_price2 = 0  ##    ##
-
-    #print(calendar.day_name[depart_date.weekday()])
     if trip_type == '2':
         return render(request, "flight/search.html", {
             'flights': flights,
@@ -350,30 +482,95 @@ def review(request):
 
 def select_flight(request):
     """
-    Intermediate view that redirects from flight selection to seat selection
+    Intermediate view for flight selection
+    Creates database Flight entries from API flight data for seat selection
     """
     flight_1 = request.GET.get('flight1Id')
     date1 = request.GET.get('flight1Date')
-    seat = request.GET.get('seatClass')
-    round_trip = False
+    seat = request.GET.get('seatClass', 'economy').lower()
     
-    if request.GET.get('flight2Id'):
-        round_trip = True
-        flight_2 = request.GET.get('flight2Id')
-        date2 = request.GET.get('flight2Date')
-
+    # Round trip parameters
+    flight_2 = request.GET.get('flight2Id')
+    date2 = request.GET.get('flight2Date')
+    is_round_trip = flight_2 is not None and flight_2 != ''
+    
     if not request.user.is_authenticated:
         return HttpResponseRedirect(reverse("login"))
     
-    # Redirect to seat selection page
-    if round_trip:
-        return HttpResponseRedirect(
-            f"/flight/seats?flight_id={flight_1}&seat_class={seat.lower()}&depart_date={date1}&flight2_id={flight_2}&date2={date2}&round_trip=true"
-        )
-    else:
-        return HttpResponseRedirect(
-            f"/flight/seats?flight_id={flight_1}&seat_class={seat.lower()}&depart_date={date1}"
-        )
+    # Helper function to get or create flight from API data
+    def get_or_create_api_flight(flight_id):
+        api_flights = request.session.get('api_flights', {})
+        flight_data = api_flights.get(flight_id)
+        
+        if not flight_data:
+            return None, "Flight data expired"
+        
+        try:
+            origin = Place.objects.get(code=flight_data['origin_code'])
+            destination = Place.objects.get(code=flight_data['destination_code'])
+            
+            from dateutil import parser as date_parser
+            depart_time = date_parser.parse(flight_data['depart_time']).time()
+            arrival_time = date_parser.parse(flight_data['arrival_time']).time()
+            duration = timedelta(seconds=flight_data['duration_seconds'])
+            
+            flight, created = Flight.objects.get_or_create(
+                plane=flight_data['plane'],
+                origin=origin,
+                destination=destination,
+                depart_time=depart_time,
+                defaults={
+                    'airline': flight_data['airline'],
+                    'arrival_time': arrival_time,
+                    'duration': duration,
+                    'economy_fare': flight_data['economy_fare'],
+                    'business_fare': flight_data['business_fare'],
+                    'first_fare': flight_data['first_fare'],
+                }
+            )
+            
+            if created:
+                for day in Week.objects.all():
+                    flight.depart_day.add(day)
+                flight.save()
+                logger.info(f"Created new Flight record from API: {flight.plane}")
+            
+            return flight, None
+        except Exception as e:
+            logger.error(f"Error creating flight from API data: {e}")
+            return None, str(e)
+    
+    # Process first flight
+    db_flight1_id = flight_1
+    if str(flight_1).startswith('api_'):
+        flight_obj, error = get_or_create_api_flight(flight_1)
+        if error:
+            return render(request, 'flight/error.html', {
+                'error_title': 'Flight Not Found',
+                'error_message': f'The selected flight data has expired. Please search again. ({error})',
+                'show_search': True
+            })
+        db_flight1_id = flight_obj.id
+    
+    # Build redirect URL
+    redirect_url = f"/flight/seats?flight_id={db_flight1_id}&seat_class={seat}&depart_date={date1}"
+    
+    # Process second flight for round trips
+    if is_round_trip:
+        db_flight2_id = flight_2
+        if str(flight_2).startswith('api_'):
+            flight2_obj, error = get_or_create_api_flight(flight_2)
+            if error:
+                return render(request, 'flight/error.html', {
+                    'error_title': 'Return Flight Not Found',
+                    'error_message': f'The return flight data has expired. Please search again. ({error})',
+                    'show_search': True
+                })
+            db_flight2_id = flight2_obj.id
+        
+        redirect_url += f"&flight2_id={db_flight2_id}&date2={date2}&round_trip=true"
+    
+    return HttpResponseRedirect(redirect_url)
 
 def book(request):
     if request.method == 'POST':
@@ -401,6 +598,7 @@ def book(request):
                 gender = request.POST[f'passenger{i}Gender']
                 passengers.append(Passenger.objects.create(first_name=fname,last_name=lname,gender=gender.lower()))
             coupon = request.POST.get('coupon')
+            coupon_discount = int(request.POST.get('couponDiscount', 0) or 0)
             
             try:
                 ticket1 = createticket(request.user,passengers,passengerscount,flight1,flight_1date,flight_1class,coupon,countrycode,email,mobile)
@@ -425,15 +623,30 @@ def book(request):
             except Exception as e:
                 return HttpResponse(e)
             
+            # Link Selected Seats to Tickets
+            selected_seat_ids = request.POST.getlist('selected_seats')
+            if selected_seat_ids:
+                seats = Seat.objects.filter(id__in=selected_seat_ids)
+                for seat in seats:
+                    # Update reservation to prevent expiry during payment
+                    reserve_seat(seat.id)
+                    
+                    if seat.flight == flight1:
+                        ticket1.selected_seats.add(seat)
+                    elif f2 and flight2 and seat.flight == flight2:
+                        ticket2.selected_seats.add(seat)
+            
 
             if f2:    ##
+                final_fare = max(0, fare + FEE - coupon_discount)
                 return render(request, "flight/payment.html", { ##
-                    'fare': fare+FEE,   ##
+                    'fare': final_fare,   ##
                     'ticket': ticket1.id,   ##
                     'ticket2': ticket2.id   ##
                 })  ##
+            final_fare = max(0, fare + FEE - coupon_discount)
             return render(request, "flight/payment.html", {
-                'fare': fare+FEE,
+                'fare': final_fare,
                 'ticket': ticket1.id
             })
         else:
@@ -514,12 +727,22 @@ def payment(request):
                 ticket.status = 'CONFIRMED'
                 ticket.booking_date = datetime.now()
                 ticket.save()
+                
+                # Book seats for ticket 1
+                for seat in ticket.selected_seats.all():
+                    book_seat(seat.id)
+                    
                 print(f"[PAYMENT] Ticket {ticket.ref_no} CONFIRMED - Payment successful!")
                 
                 if t2:
                     ticket2 = Ticket.objects.get(id=ticket2_id)
                     ticket2.status = 'CONFIRMED'
                     ticket2.save()
+                    
+                    # Book seats for ticket 2
+                    for seat in ticket2.selected_seats.all():
+                        book_seat(seat.id)
+                        
                     print(f"[PAYMENT] Round-trip ticket {ticket2.ref_no} CONFIRMED!")
                     return render(request, 'flight/payment_process.html', {
                         'ticket1': ticket,
@@ -687,8 +910,18 @@ def seat_selection(request):
         
         # Add round trip data if applicable
         if round_trip and flight2_id:
-            context['flight2_id'] = flight2_id
-            context['date2'] = date2
+            try:
+                flight2 = Flight.objects.get(id=flight2_id)
+                
+                # Check if seats exist for return flight
+                if not flight2.seats.exists():
+                    create_seats_for_flight(flight2)
+                
+                context['flight2'] = flight2
+                context['flight2_id'] = flight2_id
+                context['date2'] = date2
+            except Flight.DoesNotExist:
+                context['flight2_error'] = 'Return flight not found'
         
         return render(request, 'flight/seat_selection.html', context)
     except Flight.DoesNotExist:

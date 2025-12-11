@@ -106,3 +106,140 @@ function book_submit() {
     alert("Please add atleast one passenger.")
     return false;
 }
+
+// ===== Coupon Functionality =====
+document.addEventListener('DOMContentLoaded', () => {
+    initCouponSystem();
+});
+
+function initCouponSystem() {
+    const couponInput = document.getElementById('coupon-input');
+    const applyBtn = document.getElementById('apply-coupon-btn');
+    const removeBtn = document.getElementById('remove-coupon-btn');
+    const couponItems = document.querySelectorAll('.coupon-item');
+    
+    if (!couponInput) return;
+    
+    // Coupon data (synced with HTML data attributes)
+    const coupons = {
+        'HDFC10': { discount: 10, type: 'percent', minOrder: 0 },
+        'ICICI15': { discount: 15, type: 'percent', minOrder: 0 },
+        'SBI500': { discount: 500, type: 'flat', minOrder: 3000 }
+    };
+    
+    // Click on coupon item to select
+    couponItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const code = item.dataset.code;
+            couponInput.value = code;
+            // Hide dropdown after selection
+            document.getElementById('coupon-dropdown').style.visibility = 'hidden';
+            setTimeout(() => {
+                document.getElementById('coupon-dropdown').style.visibility = '';
+            }, 300);
+        });
+    });
+    
+    // Apply button click
+    if (applyBtn) {
+        applyBtn.addEventListener('click', () => {
+            applyCoupon(coupons, couponInput.value.toUpperCase().trim());
+        });
+    }
+    
+    // Remove coupon
+    if (removeBtn) {
+        removeBtn.addEventListener('click', () => {
+            removeCoupon();
+        });
+    }
+    
+    // Enter key to apply
+    couponInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            applyCoupon(coupons, couponInput.value.toUpperCase().trim());
+        }
+    });
+}
+
+function applyCoupon(coupons, code) {
+    const coupon = coupons[code];
+    const msgDiv = document.getElementById('coupon-applied-msg');
+    const savingsSpan = document.getElementById('savings-amount');
+    const discountInput = document.getElementById('coupon-discount-value');
+    
+    if (!coupon) {
+        alert('Invalid coupon code. Please try again.');
+        return;
+    }
+    
+    // Get current fare values
+    const pcount = parseInt(document.querySelector("#p-count").value) || 1;
+    const baseFare = parseInt(document.querySelector("#basefare").value) * pcount;
+    const fee = parseInt(document.querySelector("#fee").value);
+    const totalFare = baseFare + fee;
+    
+    // Check minimum order
+    if (coupon.minOrder > 0 && totalFare < coupon.minOrder) {
+        alert(`This coupon requires a minimum order of ₹${coupon.minOrder}.`);
+        return;
+    }
+    
+    // Calculate discount
+    let discount = 0;
+    if (coupon.type === 'percent') {
+        discount = Math.round(baseFare * (coupon.discount / 100));
+    } else {
+        discount = coupon.discount;
+    }
+    
+    // Cap discount to base fare
+    discount = Math.min(discount, baseFare);
+    
+    // Store discount value
+    discountInput.value = discount;
+    
+    // Update savings display
+    savingsSpan.textContent = `₹${discount}`;
+    msgDiv.style.display = 'flex';
+    
+    // Update total fare display
+    updateTotalWithDiscount(discount);
+    
+    // Disable input and button
+    document.getElementById('coupon-input').disabled = true;
+    document.getElementById('apply-coupon-btn').disabled = true;
+}
+
+function removeCoupon() {
+    const msgDiv = document.getElementById('coupon-applied-msg');
+    const discountInput = document.getElementById('coupon-discount-value');
+    const couponInput = document.getElementById('coupon-input');
+    
+    discountInput.value = 0;
+    couponInput.value = '';
+    couponInput.disabled = false;
+    document.getElementById('apply-coupon-btn').disabled = false;
+    msgDiv.style.display = 'none';
+    
+    // Reset total fare
+    updateTotalWithDiscount(0);
+}
+
+function updateTotalWithDiscount(discount) {
+    const pcount = parseInt(document.querySelector("#p-count").value) || 1;
+    const baseFare = parseInt(document.querySelector("#basefare").value) * pcount;
+    const fee = parseInt(document.querySelector("#fee").value);
+    const totalFareEl = document.querySelector(".total-fare-value span");
+    
+    const newTotal = baseFare + fee - discount;
+    
+    if (discount > 0) {
+        totalFareEl.innerHTML = `<span class="original-price">₹${baseFare + fee}</span> ₹${newTotal}`;
+        totalFareEl.parentElement.classList.add('discounted');
+    } else {
+        totalFareEl.textContent = baseFare + fee;
+        totalFareEl.parentElement.classList.remove('discounted');
+    }
+}
