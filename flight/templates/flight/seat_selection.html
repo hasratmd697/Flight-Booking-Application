@@ -4,6 +4,10 @@
 
 {% block head %}
     <title>Select Your Seat | Flight</title>
+    <!-- Prevent browser caching to ensure fresh data on back navigation -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <link rel="stylesheet" href="{% static 'css/seat_selection_style.css' %}">
     <style>
         .flight-tabs {
@@ -348,10 +352,86 @@
             }
         });
 
+        // Session storage keys for persisting seat selection
+        const SELECTED_SEATS_KEY = 'selected_seats_' + flightId;
+        const SELECTED_SEATS2_KEY = 'selected_seats2_' + (flight2Id || 'none');
+
         // Load seats on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadSeats();
+            
+            // Save selected seats before leaving the page
+            window.addEventListener('beforeunload', function() {
+                // Save current selections to sessionStorage
+                sessionStorage.setItem(SELECTED_SEATS_KEY, JSON.stringify(selectedSeats));
+                if (isRoundTrip) {
+                    sessionStorage.setItem(SELECTED_SEATS2_KEY, JSON.stringify(selectedSeats2));
+                }
+            });
         });
+
+        // Handle back/forward navigation - restore selections
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                console.log('Page restored from bfcache - restoring seat selections...');
+                // Restore selections from sessionStorage
+                restoreSelectionsFromSession();
+            }
+        });
+        
+        // Restore seat selections from sessionStorage
+        function restoreSelectionsFromSession() {
+            const savedSeats = sessionStorage.getItem(SELECTED_SEATS_KEY);
+            const savedSeats2 = sessionStorage.getItem(SELECTED_SEATS2_KEY);
+            
+            // Restore outbound seats (only if not already restored)
+            if (savedSeats && selectedSeats.length === 0) {
+                try {
+                    const seatIds = JSON.parse(savedSeats);
+                    seatIds.forEach(seatId => {
+                        // Check if seat exists in seatData, is available or reserved, and not already in array
+                        if (seatData[seatId] && 
+                            (seatData[seatId].status === 'reserved' || seatData[seatId].status === 'available') &&
+                            !selectedSeats.includes(seatId)) {
+                            selectedSeats.push(seatId);
+                            const el = document.querySelector(`#seatRows .seat[data-seat-id="${seatId}"]`);
+                            if (el) {
+                                el.classList.remove('available', 'reserved');
+                                el.classList.add('selected');
+                            }
+                        }
+                    });
+                } catch (e) {
+                    console.error('Failed to restore seat selections:', e);
+                }
+            }
+            
+            // Restore return seats (only if not already restored) - independent of outbound
+            if (savedSeats2 && isRoundTrip && selectedSeats2.length === 0) {
+                try {
+                    const seatIds = JSON.parse(savedSeats2);
+                    seatIds.forEach(seatId => {
+                        // Check for duplicates
+                        if (seatData2[seatId] && 
+                            (seatData2[seatId].status === 'reserved' || seatData2[seatId].status === 'available') &&
+                            !selectedSeats2.includes(seatId)) {
+                            selectedSeats2.push(seatId);
+                            const el = document.querySelector(`#seatRows2 .seat[data-seat-id="${seatId}"]`);
+                            if (el) {
+                                el.classList.remove('available', 'reserved');
+                                el.classList.add('selected');
+                            }
+                        }
+                    });
+                } catch (e) {
+                    console.error('Failed to restore return seat selections:', e);
+                }
+            }
+            
+            // Update UI
+            updatePriceSummary();
+            updateConfirmButton();
+        }
 
         async function loadSeats() {
             showLoading(true);
@@ -361,6 +441,8 @@
 
                 if (data.success) {
                     renderSeats(data.seats);
+                    // Restore user's previous selections from sessionStorage
+                    restoreSelectionsFromSession();
                 } else {
                     showNotification('Error loading seats: ' + data.error, 'error');
                 }
@@ -445,7 +527,8 @@
             seatDiv.dataset.isReturn = isReturn;
             seatDiv.textContent = seat.number;
 
-            if (seat.status === 'available') {
+            // Make available and reserved seats clickable (user can toggle their own reserved seats)
+            if (seat.status === 'available' || seat.status === 'reserved') {
                 seatDiv.onclick = () => toggleSeat(seat.id, isReturn);
             }
 
@@ -465,6 +548,8 @@
 
                 if (data.success) {
                     renderSeats2(data.seats);
+                    // Restore user's previous selections from sessionStorage
+                    restoreSelectionsFromSession();
                 } else {
                     showNotification('Error loading return flight seats: ' + data.error, 'error');
                 }
@@ -546,9 +631,8 @@
 
         async function toggleSeat(seatId, isReturn = false) {
             const seatsArray = isReturn ? selectedSeats2 : selectedSeats;
+            const seatDataObj = isReturn ? seatData2 : seatData;
             const index = seatsArray.indexOf(seatId);
-            const isReturnStr = isReturn.toString();
-            // Need to be careful with isReturn selector, better to use dataset property check or separate container
             let seatElement;
             if (isReturn) {
                  seatElement = document.querySelector(`#seatRows2 .seat[data-seat-id="${seatId}"]`);
@@ -557,17 +641,30 @@
             }
 
             if (index > -1) {
-                // Deselect
+                // Deselect - remove from selection and release
                 seatsArray.splice(index, 1);
-                if (seatElement) seatElement.classList.remove('selected');
-
+                if (seatElement) {
+                    seatElement.classList.remove('selected');
+                    seatElement.classList.add('available');
+                }
+                // Update local data
+                if (seatDataObj[seatId]) {
+                    seatDataObj[seatId].status = 'available';
+                }
                 // Release reservation
                 await releaseSeat(seatId);
             } else {
-                // Select
+                // Select - if seat is reserved (by another user from different session), show error
+                // For now, allow selecting reserved seats (assuming they're user's own or will be re-reserved)
                 seatsArray.push(seatId);
-                if (seatElement) seatElement.classList.add('selected');
-
+                if (seatElement) {
+                    seatElement.classList.remove('available', 'reserved');
+                    seatElement.classList.add('selected');
+                }
+                // Update local data
+                if (seatDataObj[seatId]) {
+                    seatDataObj[seatId].status = 'reserved';
+                }
                 // Reserve seat
                 await reserveSeat(seatId);
             }
@@ -729,26 +826,54 @@
             }
         }
 
-        function clearSelection() {
-            // Clear outbound
+        async function clearSelection() {
+            // Collect all seats to release
+            const seatsToRelease = [...selectedSeats, ...selectedSeats2];
+            
+            // Clear sessionStorage to prevent restoration on back navigation
+            sessionStorage.removeItem(SELECTED_SEATS_KEY);
+            sessionStorage.removeItem(SELECTED_SEATS2_KEY);
+            
+            // Immediately update DOM and local state for outbound seats
             selectedSeats.forEach(seatId => {
                 const el = document.querySelector(`#seatRows .seat[data-seat-id="${seatId}"]`);
-                if(el) el.classList.remove('selected');
-                releaseSeat(seatId);
+                if (el) {
+                    // Remove all status classes and add available
+                    el.classList.remove('selected', 'reserved');
+                    el.classList.add('available');
+                }
+                // Update local data
+                if (seatData[seatId]) {
+                    seatData[seatId].status = 'available';
+                }
             });
             selectedSeats = [];
             
-            // Clear return
+            // Immediately update DOM and local state for return seats
             selectedSeats2.forEach(seatId => {
                 const el = document.querySelector(`#seatRows2 .seat[data-seat-id="${seatId}"]`);
-                if(el) el.classList.remove('selected');
-                releaseSeat(seatId);
+                if (el) {
+                    // Remove all status classes and add available
+                    el.classList.remove('selected', 'reserved');
+                    el.classList.add('available');
+                }
+                // Update local data
+                if (seatData2[seatId]) {
+                    seatData2[seatId].status = 'available';
+                }
             });
             selectedSeats2 = [];
             
+            // Update UI immediately
             updatePriceSummary();
             updateConfirmButton();
-            showNotification('Selection cleared', 'success');
+            
+            // Release all seats on server in parallel (don't wait for response)
+            seatsToRelease.forEach(seatId => {
+                releaseSeat(seatId).catch(err => console.error('Failed to release seat:', seatId, err));
+            });
+            
+            showNotification('Selection cleared - seats are now available', 'success');
         }
 
         async function confirmSeats() {
