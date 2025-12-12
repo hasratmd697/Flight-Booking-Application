@@ -68,7 +68,6 @@ Prices automatically adjust based on demand and booking timing:
 - **Registration & Login** - Secure authentication system
 - **Booking History** - View all past and upcoming flights
 - **Ticket Cancellation** - Cancel bookings when needed
-- **PDF Tickets** - Download printable booking confirmations
 
 ## 🛠️ Technology Stack
 
