@@ -22,13 +22,32 @@ success_count = 0
 failure_count = 0
 results = []
 
-def get_available_seats(flight_id=1, seat_class="economy"):
+def get_available_seats(flight_id, seat_class="economy"):
     """Fetch available seats for a flight"""
     response = requests.get(
         f"{BASE_URL}/api/seats/available",
         params={"flight_id": flight_id, "seat_class": seat_class}
     )
     return response.json()
+
+def find_flight_with_seats():
+    """Find a flight ID that has available seats"""
+    print("   Searching for a flight with available seats...")
+    # Try flight IDs from 1 to 20000 (checking in batches)
+    for flight_id in range(1, 20000, 100):
+        for fid in range(flight_id, min(flight_id + 100, 20000)):
+            try:
+                data = get_available_seats(fid)
+                if data.get('success'):
+                    seats = data.get('seats', [])
+                    available = [s for s in seats if s['status'] == 'available']
+                    if len(available) >= 1:
+                        print(f"   ✅ Found flight ID {fid} with {len(available)} available seats")
+                        return fid, data
+            except:
+                pass
+        print(f"   Checked flights {flight_id}-{flight_id+99}...")
+    return None, None
 
 def reserve_seat(seat_id, thread_id):
     """Reserve a specific seat and track results"""
@@ -118,20 +137,16 @@ def demonstrate_concurrency():
     print("CONCURRENCY FEATURE DEMONSTRATION")
     print("=" * 60)
     
-    # Step 1: Get an available seat to test with
+    # Step 1: Find a flight with available seats
     print("\n📊 Step 1: Finding an available seat for testing...")
-    data = get_available_seats()
+    flight_id, data = find_flight_with_seats()
     
-    if not data.get('success'):
-        print(f"❌ Error: {data.get('error', 'Unknown error')}")
+    if not flight_id:
+        print("❌ No flights with available seats found!")
         return
     
     seats = data.get('seats', [])
     available_seats = [s for s in seats if s['status'] == 'available']
-    
-    if not available_seats:
-        print("❌ No available seats to test with!")
-        return
     
     test_seat = available_seats[0]
     print(f"   Using seat: {test_seat['number']} (ID: {test_seat['id']})")

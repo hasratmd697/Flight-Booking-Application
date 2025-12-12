@@ -16,6 +16,7 @@ from capstone.utils import render_to_pdf, createticket
 #Fee and Surcharge variable
 from .constant import FEE
 from flight.utils import createWeekDays, addPlaces, addDomesticFlights, addInternationalFlights
+from flight.email_service import send_ticket_email
 from flight.seat_manager import (
     get_seat_map, 
     reserve_seat, 
@@ -439,16 +440,65 @@ def review(request):
         flight_2 = request.GET.get('flight2Id')
         date2 = request.GET.get('flight2Date')
 
+    # Helper function to parse multiple date formats
+    def parse_date_flexible(date_str):
+        """Parse date string trying multiple formats"""
+        if not date_str:
+            return None
+        
+        formats = [
+            '%d-%m-%Y',              # 12-12-2025
+            '%Y-%m-%d',              # 2025-12-12
+            '%b. %d, %Y, midnight',  # Dec. 13, 2025, midnight
+            '%b. %d, %Y, noon',      # Dec. 13, 2025, noon
+            '%b. %d, %Y',            # Dec. 13, 2025
+            '%B %d, %Y',             # December 13, 2025
+            '%d %b %Y',              # 13 Dec 2025
+        ]
+        
+        date_str = date_str.strip()
+        
+        for fmt in formats:
+            try:
+                return datetime.strptime(date_str, fmt)
+            except ValueError:
+                continue
+        
+        # Handle "Dec. 13, 2025, midnight" format specifically
+        try:
+            cleaned = date_str.replace(', midnight', '').replace(', noon', '')
+            return datetime.strptime(cleaned, '%b. %d, %Y')
+        except:
+            pass
+        
+        return None
+
     if request.user.is_authenticated:
         flight1 = Flight.objects.get(id=flight_1)
-        flight1ddate = datetime(int(date1.split('-')[2]),int(date1.split('-')[1]),int(date1.split('-')[0]),flight1.depart_time.hour,flight1.depart_time.minute)
+        
+        # Parse date using flexible parser
+        parsed_date1 = parse_date_flexible(date1)
+        if parsed_date1:
+            flight1ddate = datetime(parsed_date1.year, parsed_date1.month, parsed_date1.day, 
+                                   flight1.depart_time.hour, flight1.depart_time.minute)
+        else:
+            # Fallback to current date if parsing fails
+            flight1ddate = datetime.now().replace(hour=flight1.depart_time.hour, 
+                                                   minute=flight1.depart_time.minute)
+        
         flight1adate = (flight1ddate + flight1.duration)
         flight2 = None
         flight2ddate = None
         flight2adate = None
         if round_trip:
             flight2 = Flight.objects.get(id=flight_2)
-            flight2ddate = datetime(int(date2.split('-')[2]),int(date2.split('-')[1]),int(date2.split('-')[0]),flight2.depart_time.hour,flight2.depart_time.minute)
+            parsed_date2 = parse_date_flexible(date2)
+            if parsed_date2:
+                flight2ddate = datetime(parsed_date2.year, parsed_date2.month, parsed_date2.day,
+                                       flight2.depart_time.hour, flight2.depart_time.minute)
+            else:
+                flight2ddate = datetime.now().replace(hour=flight2.depart_time.hour,
+                                                       minute=flight2.depart_time.minute)
             flight2adate = (flight2ddate + flight2.duration)
         
         # Get selected seat objects if any
@@ -666,60 +716,36 @@ def book(request):
 def payment(request):
     if request.user.is_authenticated:
         if request.method == 'POST':
+            # Import payment simulator
+            from payment_simulate import process_payment
+            
             ticket_id = request.POST['ticket']
             t2 = False
             if request.POST.get('ticket2'):
                 ticket2_id = request.POST['ticket2']
                 t2 = True
-            fare = request.POST.get('fare')
-            card_number = request.POST['cardNumber'].replace(' ', '')  # Remove spaces
+            fare = float(request.POST.get('fare', 0))
+            card_number = request.POST['cardNumber'].replace(' ', '')
             card_holder_name = request.POST['cardHolderName']
             exp_month = request.POST['expMonth']
             exp_year = request.POST['expYear']
             cvv = request.POST['cvv']
             
-            # Server-side validation
-            validation_errors = []
+            # Format expiry as MM/YY for payment simulator
+            try:
+                exp_year_short = str(int(exp_year))[-2:]  # Get last 2 digits
+                expiry = f"{exp_month.zfill(2)}/{exp_year_short}"
+            except:
+                expiry = ""
             
-            # Validate card number (16 digits)
-            if not card_number.isdigit() or len(card_number) != 16:
-                validation_errors.append("Invalid card number. Must be 16 digits.")
-                print(f"[PAYMENT VALIDATION] FAILED: Invalid card number length={len(card_number)}")
-            else:
-                print(f"[PAYMENT VALIDATION] Card number validated: ****{card_number[-4:]}")
-            
-            # Validate card holder name (letters and spaces only)
+            # Validate card holder name
             import re
+            validation_errors = []
             if not re.match(r'^[a-zA-Z\s]+$', card_holder_name) or len(card_holder_name) < 2:
                 validation_errors.append("Invalid card holder name. Letters only.")
-                print(f"[PAYMENT VALIDATION] FAILED: Invalid card holder name")
-            else:
-                print(f"[PAYMENT VALIDATION] Card holder validated: {card_holder_name}")
+                print(f"[PAYMENT] Validation failed: Invalid card holder name")
             
-            # Validate expiry date (not in past)
-            try:
-                exp_m = int(exp_month)
-                exp_y = int(exp_year)
-                now = datetime.now()
-                if exp_y < now.year or (exp_y == now.year and exp_m < now.month):
-                    validation_errors.append("Card has expired.")
-                    print(f"[PAYMENT VALIDATION] FAILED: Card expired {exp_m}/{exp_y}")
-                else:
-                    print(f"[PAYMENT VALIDATION] Expiry validated: {exp_m}/{exp_y}")
-            except:
-                validation_errors.append("Invalid expiry date.")
-                print(f"[PAYMENT VALIDATION] FAILED: Invalid expiry format")
-            
-            # Validate CVV (3 digits)
-            if not cvv.isdigit() or len(cvv) != 3:
-                validation_errors.append("Invalid CVV. Must be 3 digits.")
-                print(f"[PAYMENT VALIDATION] FAILED: Invalid CVV")
-            else:
-                print(f"[PAYMENT VALIDATION] CVV validated: ***")
-            
-            # If validation errors, return to payment page
             if validation_errors:
-                print(f"[PAYMENT VALIDATION] Payment rejected with {len(validation_errors)} error(s)")
                 ticket = Ticket.objects.get(id=ticket_id)
                 return render(request, 'flight/payment.html', {
                     'fare': ticket.total_fare,
@@ -728,8 +754,33 @@ def payment(request):
                     'errors': validation_errors
                 })
             
-            # All validations passed - process payment
-            print(f"[PAYMENT VALIDATION] SUCCESS: All validations passed, processing payment...")
+            # Process payment through simulator
+            print(f"[PAYMENT] Processing card payment for ₹{fare}...")
+            result = process_payment(
+                payment_method='card',
+                amount=fare,
+                card_number=card_number,
+                expiry=expiry,
+                cvv=cvv
+            )
+            
+            print(f"[PAYMENT] Gateway response: {result}")
+            
+            # Handle payment failure
+            if not result.get('success'):
+                print(f"[PAYMENT] Payment FAILED: {result.get('errors', ['Unknown error'])}")
+                ticket = Ticket.objects.get(id=ticket_id)
+                return render(request, 'flight/payment.html', {
+                    'fare': ticket.total_fare,
+                    'ticket': ticket_id,
+                    'ticket2': ticket2_id if t2 else None,
+                    'errors': result.get('errors', ['Payment processing failed. Please try again.']),
+                    'transaction_id': result.get('transaction_id')
+                })
+            
+            # Payment successful - confirm booking
+            transaction_id = result.get('transaction_id')
+            print(f"[PAYMENT] Payment SUCCESS! Transaction ID: {transaction_id}")
 
             try:
                 ticket = Ticket.objects.get(id=ticket_id)
@@ -741,7 +792,7 @@ def payment(request):
                 for seat in ticket.selected_seats.all():
                     book_seat(seat.id)
                     
-                print(f"[PAYMENT] Ticket {ticket.ref_no} CONFIRMED - Payment successful!")
+                print(f"[PAYMENT] Ticket {ticket.ref_no} CONFIRMED!")
                 
                 if t2:
                     ticket2 = Ticket.objects.get(id=ticket2_id)
@@ -753,13 +804,29 @@ def payment(request):
                         book_seat(seat.id)
                         
                     print(f"[PAYMENT] Round-trip ticket {ticket2.ref_no} CONFIRMED!")
+                    
+                    # Send confirmation email for round-trip
+                    email_sent = send_ticket_email(ticket, ticket2)
+                    print(f"[EMAIL] Confirmation email sent: {email_sent}")
+                    
                     return render(request, 'flight/payment_process.html', {
                         'ticket1': ticket,
-                        'ticket2': ticket2
+                        'ticket2': ticket2,
+                        'transaction_id': transaction_id,
+                        'email_sent': email_sent,
+                        'email_address': ticket.email
                     })
+                
+                # Send confirmation email for one-way trip
+                email_sent = send_ticket_email(ticket)
+                print(f"[EMAIL] Confirmation email sent: {email_sent}")
+                
                 return render(request, 'flight/payment_process.html', {
                     'ticket1': ticket,
-                    'ticket2': ""
+                    'ticket2': "",
+                    'transaction_id': transaction_id,
+                    'email_sent': email_sent,
+                    'email_address': ticket.email
                 })
             except Exception as e:
                 print(f"[PAYMENT] ERROR: {str(e)}")
@@ -801,6 +868,41 @@ def bookings(request):
         })
     else:
         return HttpResponseRedirect(reverse('login'))
+
+
+@csrf_exempt
+def resend_ticket_email_view(request):
+    """
+    Resend booking confirmation email to user.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'message': 'Please login first'})
+    
+    if request.method == 'POST':
+        ref_no = request.POST.get('ref_no')
+        if not ref_no:
+            return JsonResponse({'success': False, 'message': 'Missing ticket reference'})
+        
+        # Find ticket and resend email
+        try:
+            ticket1 = Ticket.objects.filter(ref_no=ref_no, user=request.user).first()
+            if not ticket1:
+                return JsonResponse({'success': False, 'message': 'Ticket not found'})
+            
+            # Check for return ticket
+            ticket2 = Ticket.objects.filter(ref_no=ref_no, user=request.user).exclude(id=ticket1.id).first()
+            
+            # Send email
+            success = send_ticket_email(ticket1, ticket2)
+            
+            if success:
+                return JsonResponse({'success': True, 'message': f'Email sent to {ticket1.email}'})
+            else:
+                return JsonResponse({'success': False, 'message': 'Failed to send email. Please try again.'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
 
 @csrf_exempt
 def cancel_ticket(request):
@@ -907,12 +1009,64 @@ def seat_selection(request):
                 'price': seat.price
             }
         
+        # Parse depart_date for proper formatting (handle multiple date formats)
+        from datetime import datetime, timedelta
+        
+        def parse_date(date_str):
+            """Parse date string trying multiple formats"""
+            if not date_str:
+                return None
+            
+            # List of date formats to try
+            formats = [
+                '%d-%m-%Y',              # 12-12-2025
+                '%Y-%m-%d',              # 2025-12-12
+                '%b. %d, %Y, %H:%M',     # Dec. 12, 2025, 00:00
+                '%b. %d, %Y, midnight',  # Dec. 12, 2025, midnight
+                '%b. %d, %Y, noon',      # Dec. 12, 2025, noon
+                '%b. %d, %Y',            # Dec. 12, 2025
+                '%B %d, %Y',             # December 12, 2025
+                '%d %b %Y',              # 12 Dec 2025
+                '%d %B %Y',              # 12 December 2025
+            ]
+            
+            # Clean the date string
+            date_str = date_str.strip()
+            
+            for fmt in formats:
+                try:
+                    return datetime.strptime(date_str, fmt)
+                except ValueError:
+                    continue
+            
+            # If none of the formats work, try a more flexible approach
+            # Handle "Dec. 12, 2025, midnight" format specifically
+            try:
+                # Remove ", midnight" or ", noon" suffix
+                cleaned = date_str.replace(', midnight', '').replace(', noon', '')
+                return datetime.strptime(cleaned, '%b. %d, %Y')
+            except:
+                pass
+            
+            return None
+        
+        try:
+            depart_date_obj = parse_date(depart_date)
+            if depart_date_obj:
+                arrival_date_obj = depart_date_obj + timedelta(seconds=flight.duration.total_seconds())
+            else:
+                arrival_date_obj = None
+        except:
+            depart_date_obj = None
+            arrival_date_obj = None
+        
         # Prepare context
         context = {
             'flight': flight,
             'seat_class': seat_class,
             'seat_layout': seat_layout,
-            'depart_date': depart_date,
+            'depart_date': depart_date_obj,
+            'arrival_date': arrival_date_obj,
             'flight_id': flight_id,
             'round_trip': round_trip,
         }
@@ -926,9 +1080,21 @@ def seat_selection(request):
                 if not flight2.seats.exists():
                     create_seats_for_flight(flight2)
                 
+                # Parse date2 for proper formatting (using same multi-format parser)
+                try:
+                    date2_obj = parse_date(date2)
+                    if date2_obj:
+                        arrival_date2_obj = date2_obj + timedelta(seconds=flight2.duration.total_seconds())
+                    else:
+                        arrival_date2_obj = None
+                except:
+                    date2_obj = None
+                    arrival_date2_obj = None
+                
                 context['flight2'] = flight2
                 context['flight2_id'] = flight2_id
-                context['date2'] = date2
+                context['date2'] = date2_obj
+                context['arrival_date2'] = arrival_date2_obj
             except Flight.DoesNotExist:
                 context['flight2_error'] = 'Return flight not found'
         

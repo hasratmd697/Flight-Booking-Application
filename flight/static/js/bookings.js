@@ -31,3 +31,44 @@ function cancel_tkt() {
         }
     });
 }
+
+function resendEmail(element) {
+    let ref = element.dataset.ref;
+    let btn = element;
+    
+    // Disable button and show loading state
+    btn.disabled = true;
+    btn.innerHTML = '⏳';
+    
+    let formData = new FormData();
+    formData.append('ref_no', ref);
+    
+    fetch('/flight/ticket/resend-email', {
+        method: "POST",
+        body: formData
+    })
+    .then(response => response.json())
+    .then(response => {
+        if (response.success === true) {
+            btn.innerHTML = '✅';
+            btn.classList.remove('btn-outline-success');
+            btn.classList.add('btn-success');
+            setTimeout(() => {
+                btn.innerHTML = '📧';
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-success');
+                btn.disabled = false;
+            }, 3000);
+            alert(response.message);
+        } else {
+            btn.innerHTML = '📧';
+            btn.disabled = false;
+            alert(`Error: ${response.message}`);
+        }
+    })
+    .catch(error => {
+        btn.innerHTML = '📧';
+        btn.disabled = false;
+        alert('Failed to send email. Please try again.');
+    });
+}

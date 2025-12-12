@@ -15,7 +15,19 @@ function add_traveller() {
     let fname = div.querySelector('#fname');
     let lname = div.querySelector('#lname');
     let gender = div.querySelectorAll('.gender');
-    let gender_val = null
+    let gender_val = null;
+    
+    // Check if already at maximum passengers (matches seat count)
+    let currentCount = div.parentElement.querySelectorAll(".each-traveller-div .each-traveller").length;
+    let requiredPassengers = document.querySelector("#required-passengers");
+    let maxPassengers = requiredPassengers ? parseInt(requiredPassengers.value) : 1;
+    
+    if (currentCount >= maxPassengers) {
+        // Show modal instead of alert
+        showPassengerValidationModal(maxPassengers, currentCount, 'limit');
+        return false;
+    }
+    
     if(fname.value.trim().length === 0) {
         alert("Please enter First Name.");
         return false;
@@ -106,31 +118,42 @@ function book_submit() {
     
     // Check if we have at least one passenger
     if(current <= 0) {
-        showPassengerValidationModal(required, current);
+        showPassengerValidationModal(required, current, 'none');
         return false;
     }
     
-    // Check if passenger count matches required seats
+    // Check if passenger count is less than required seats
     if(current < required) {
-        showPassengerValidationModal(required, current);
+        showPassengerValidationModal(required, current, 'less');
+        return false;
+    }
+    
+    // Check if passenger count is more than required seats
+    if(current > required) {
+        showPassengerValidationModal(required, current, 'more');
         return false;
     }
     
     return true;
 }
 
-function showPassengerValidationModal(required, current) {
+function showPassengerValidationModal(required, current, type) {
     // Update modal message
-    let missing = required - current;
     let messageEl = document.getElementById('passengerValidationMessage');
     let seatCountEl = document.getElementById('modal-seat-count');
     let passengerCountEl = document.getElementById('modal-passenger-count');
     
     if (messageEl) {
-        if (current === 0) {
+        if (type === 'none' || current === 0) {
             messageEl.textContent = `Please add details for ${required} passenger(s) to proceed.`;
-        } else {
+        } else if (type === 'less') {
+            let missing = required - current;
             messageEl.textContent = `Please add ${missing} more passenger(s) to match your seat selection.`;
+        } else if (type === 'more') {
+            let extra = current - required;
+            messageEl.textContent = `You have ${extra} extra passenger(s). Please remove ${extra} passenger(s) to match your ${required} selected seat(s).`;
+        } else if (type === 'limit') {
+            messageEl.textContent = `You have already added ${required} passenger(s) which matches your selected seat(s). You cannot add more passengers.`;
         }
     }
     

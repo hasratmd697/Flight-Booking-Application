@@ -186,6 +186,10 @@
                 <div class="flight1" style="padding: 10px 0; border-bottom: 1px solid #eee;">
                     <strong>Booking Reference:</strong> <span class="ref" style="color: #28a745; font-weight: bold;">{{ticket1.ref_no}}</span>
                     <br>
+                    {% if transaction_id %}
+                    <strong>Transaction ID:</strong> <span style="color: #666; font-family: monospace; font-size: 0.9rem;">{{transaction_id}}</span>
+                    <br>
+                    {% endif %}
                     <span style="font-size: 1.1rem;">
                         <span class="from1">{{ticket1.flight.origin.code}}</span> 
                         <span>✈️</span> 
@@ -204,27 +208,27 @@
             </div>
         </div>
         <div class="ticket-div" style="margin-top: 20px;">
+            <!-- Email Confirmation -->
+            {% if email_sent %}
+            <div style="background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 15px 20px; margin-bottom: 20px; display: inline-block;">
+                <span style="color: #155724; font-size: 1.1rem;">
+                    <strong>Confirmation email sent to:</strong> {{ email_address }}
+                </span>
+            </div>
+            {% else %}
+            <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 15px 20px; margin-bottom: 20px; display: inline-block;">
+                <span style="color: #856404; font-size: 1rem;">
+                    Email could not be sent. You can view your ticket from bookings.
+                </span>
+            </div>
+            {% endif %}
+            <br>
             <div>
-                <form action="{% url 'getticket' %}" method="get" target="_blank">
-                    <input type="hidden" name="ref" value="{{ticket1.ref_no}}">
-                    <button type="submit" class="btn btn-success" style="margin: 5px; padding: 12px 25px; font-size: 1rem;">
-                        🎫 Print Ticket ({{ticket1.flight.origin.code}} → {{ticket1.flight.destination.code}})
-                    </button>
-                </form>
-                {% if ticket2 %}
-                    <form action="{% url 'getticket' %}" method="get" target="_blank">
-                        <input type="hidden" name="ref" value="{{ticket2.ref_no}}">
-                        <button type="submit" class="btn btn-success" style="margin: 5px; padding: 12px 25px; font-size: 1rem;">
-                            🎫 Print Return Ticket ({{ticket2.flight.origin.code}} → {{ticket2.flight.destination.code}})
-                        </button>
-                    </form>
-                {% endif %}
-                <br>
                 <button class="btn btn-outline-primary" style="margin: 10px; padding: 10px 20px;" type="button" onclick="window.location.href = '/flight/bookings'">
-                    📋 View All Bookings
+                    View All Bookings
                 </button>
                 <button class="btn btn-outline-secondary" style="margin: 10px; padding: 10px 20px;" type="button" onclick="window.location.href = '/'">
-                    🏠 Go Home
+                    Go Home
                 </button>
             </div>
         </div>

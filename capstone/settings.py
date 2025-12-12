@@ -160,3 +160,22 @@ AUTH_USER_MODEL = 'flight.User'
 
 # DEBUG = False
 
+
+# ============================================
+# Email Configuration (SendGrid)
+# ============================================
+SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '')
+
+if SENDGRID_API_KEY:
+    # Use SendGrid for real email delivery
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.sendgrid.net'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = 'apikey'  # This is literally the string 'apikey'
+    EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+    DEFAULT_FROM_EMAIL = 'Flight Bookings <hasratmd697@gmail.com>'
+else:
+    # Fallback to console for development without SendGrid
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    DEFAULT_FROM_EMAIL = 'Flight Bookings <hasratmd697@gmail.com>'

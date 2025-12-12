@@ -70,15 +70,16 @@
                                 </div>
                                 <div class="col-3 depart-time">
                                     <div class="time">{{ flight.depart_time|time:'H:i' }}</div>
+                                    <div class="date">{{ depart_date|date:"D, d M y" }}</div>
                                     <div class="place">{{ flight.origin.city }}</div>
                                     <div class="airport">{{ flight.origin.airport }}</div>
                                 </div>
                                 <div class="col-3 time-details">
                                     <div class="duration" data-value="{{ flight.duration.total_seconds }}"></div>
-                                    <div class="flight-date">{{ depart_date }}</div>
                                 </div>
                                 <div class="col-3 arrival-time">
                                     <div class="time">{{ flight.arrival_time|time:'H:i' }}</div>
+                                    <div class="date">{{ arrival_date|date:"D, d M y" }}</div>
                                     <div class="place">{{ flight.destination.city }}</div>
                                     <div class="airport">{{ flight.destination.airport }}</div>
                                 </div>
@@ -193,15 +194,16 @@
                                 </div>
                                 <div class="col-3 depart-time">
                                     <div class="time">{{ flight2.depart_time|time:'H:i' }}</div>
+                                    <div class="date">{{ date2|date:"D, d M y" }}</div>
                                     <div class="place">{{ flight2.origin.city }}</div>
                                     <div class="airport">{{ flight2.origin.airport }}</div>
                                 </div>
                                 <div class="col-3 time-details">
                                     <div class="duration" data-value="{{ flight2.duration.total_seconds }}"></div>
-                                    <div class="flight-date">{{ date2 }}</div>
                                 </div>
                                 <div class="col-3 arrival-time">
                                     <div class="time">{{ flight2.arrival_time|time:'H:i' }}</div>
+                                    <div class="date">{{ arrival_date2|date:"D, d M y" }}</div>
                                     <div class="place">{{ flight2.destination.city }}</div>
                                     <div class="airport">{{ flight2.destination.airport }}</div>
                                 </div>

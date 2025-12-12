@@ -14,13 +14,32 @@ import time
 
 BASE_URL = "https://flight-app-2025.el.r.appspot.com"
 
-def get_available_seats(flight_id=1, seat_class="economy"):
+def get_available_seats(flight_id, seat_class="economy"):
     """Fetch available seats for a flight"""
     response = requests.get(
         f"{BASE_URL}/api/seats/available",
         params={"flight_id": flight_id, "seat_class": seat_class}
     )
     return response.json()
+
+def find_flight_with_seats():
+    """Find a flight ID that has available seats"""
+    print("   Searching for a flight with available seats...")
+    # Try flight IDs from 1 to 20000 (checking in batches)
+    for flight_id in range(1, 20000, 100):
+        for fid in range(flight_id, min(flight_id + 100, 20000)):
+            try:
+                data = get_available_seats(fid)
+                if data.get('success'):
+                    seats = data.get('seats', [])
+                    available = [s for s in seats if s['status'] == 'available']
+                    if len(available) >= 10:  # Need at least 10 seats for good demo
+                        print(f"   ✅ Found flight ID {fid} with {len(available)} available seats")
+                        return fid, data
+            except:
+                pass
+        print(f"   Checked flights {flight_id}-{flight_id+99}...")
+    return None, None
 
 def reserve_seat(seat_id):
     """Reserve a specific seat"""
@@ -43,12 +62,12 @@ def demonstrate_dynamic_pricing():
     print("DYNAMIC PRICING DEMONSTRATION")
     print("=" * 60)
     
-    # Step 1: Get initial seats and prices
-    print("\n📊 Step 1: Fetching initial seat prices...")
-    data = get_available_seats()
+    # Step 1: Find a flight with available seats
+    print("\n📊 Step 1: Finding a flight with available seats...")
+    flight_id, data = find_flight_with_seats()
     
-    if not data.get('success'):
-        print(f"❌ Error: {data.get('error', 'Unknown error')}")
+    if not flight_id:
+        print("❌ No flights with available seats found!")
         return
     
     seats = data.get('seats', [])
@@ -56,10 +75,6 @@ def demonstrate_dynamic_pricing():
     
     print(f"   Total seats: {len(seats)}")
     print(f"   Available seats: {len(available_seats)}")
-    
-    if not available_seats:
-        print("❌ No available seats to test with!")
-        return
     
     # Show initial price distribution
     print("\n💰 Initial Price Distribution:")
@@ -79,6 +94,9 @@ def demonstrate_dynamic_pricing():
     batches = [5, 10, 15, 20]
     
     for batch_target in batches:
+        if batch_target > len(available_seats):
+            break
+            
         # Reserve seats until we reach the batch target
         while len(reserved_seats) < batch_target and len(reserved_seats) < len(available_seats):
             seat = available_seats[len(reserved_seats)]
@@ -91,7 +109,7 @@ def demonstrate_dynamic_pricing():
                 break
         
         # Get updated prices
-        updated_data = get_available_seats()
+        updated_data = get_available_seats(flight_id)
         if updated_data.get('success'):
             updated_seats = [s for s in updated_data['seats'] if s['status'] == 'available']
             if updated_seats:
