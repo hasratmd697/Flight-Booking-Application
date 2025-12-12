@@ -71,6 +71,7 @@
                                 </div>
                                 <div class="col-3 time-details">
                                     <div class="duration" data-value="{{ flight.duration.total_seconds }}"></div>
+                                    <div class="flight-date">{{ depart_date }}</div>
                                 </div>
                                 <div class="col-3 arrival-time">
                                     <div class="time">{{ flight.arrival_time|time:'H:i' }}</div>
@@ -193,6 +194,7 @@
                                 </div>
                                 <div class="col-3 time-details">
                                     <div class="duration" data-value="{{ flight2.duration.total_seconds }}"></div>
+                                    <div class="flight-date">{{ date2 }}</div>
                                 </div>
                                 <div class="col-3 arrival-time">
                                     <div class="time">{{ flight2.arrival_time|time:'H:i' }}</div>

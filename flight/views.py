@@ -453,9 +453,16 @@ def review(request):
         
         # Get selected seat objects if any
         seat_objects = []
+        required_passengers = 1  # Default to at least 1 passenger
         if selected_seats:
             seat_ids = [int(sid) for sid in selected_seats.split(',') if sid.strip()]
             seat_objects = Seat.objects.filter(id__in=seat_ids)
+            # Calculate required passengers from selected seats
+            # For round trips, seats are selected for both flights, so divide by 2
+            if round_trip:
+                required_passengers = max(1, len(seat_ids) // 2)
+            else:
+                required_passengers = max(1, len(seat_ids))
         
         if round_trip:
             return render(request, "flight/book.html", {
@@ -467,7 +474,8 @@ def review(request):
                 "flight2adate": flight2adate,
                 "seat": seat,
                 "fee": FEE,
-                "selected_seats": seat_objects
+                "selected_seats": seat_objects,
+                "required_passengers": required_passengers
             })
         return render(request, "flight/book.html", {
             'flight1': flight1,
@@ -475,7 +483,8 @@ def review(request):
             "flight1adate": flight1adate,
             "seat": seat,
             "fee": FEE,
-            "selected_seats": seat_objects
+            "selected_seats": seat_objects,
+            "required_passengers": required_passengers
         })
     else:
         return HttpResponseRedirect(reverse("login"))

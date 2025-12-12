@@ -356,10 +356,11 @@
                 <div class="traveller-details individual-traveller-div">
                     <div class="traveller-head">
                         <h5>Passenger Details</h5>
-                        <h6><span>0</span> Passengers</h6>
+                        <h6><span>0</span> of <span class="required-count">{{ required_passengers|default:1 }}</span> Passengers</h6>
                     </div>
                     <hr>
                     <input type="hidden" id="p-count" name="passengersCount" value="0">
+                    <input type="hidden" id="required-passengers" value="{{ required_passengers|default:1 }}">
                     <div class="each-traveller-div">
                     </div>
                     <div class="row each-traveller no-traveller">
@@ -522,4 +523,63 @@
             </div>
         </form>
     </section>
+
+    <!-- Passenger Validation Modal -->
+    <div class="modal fade" id="passengerValidationModal" tabindex="-1" role="dialog" aria-labelledby="passengerValidationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content" style="border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                <div class="modal-header" style="background: linear-gradient(135deg, #dc3545 0%, #b8017b 100%); border: none; padding: 1.2rem 1.5rem;">
+                    <h5 class="modal-title" id="passengerValidationModalLabel" style="color: white; font-weight: 600; background: none; -webkit-background-clip: unset; -webkit-text-fill-color: white;">
+                        <svg width="1.2em" height="1.2em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" style="margin-right: 8px;">
+                            <path fill-rule="evenodd" d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 5zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
+                        </svg>
+                        Passenger Details Required
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white; opacity: 0.8;">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" style="padding: 1.5rem; text-align: center;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">👥</div>
+                    <p id="passengerValidationMessage" style="font-size: 1.1rem; color: #333; margin-bottom: 0.5rem;">
+                        Please add passenger details for all travelers.
+                    </p>
+                    <p style="color: #666; font-size: 0.95rem;">
+                        You have selected <strong id="modal-seat-count">0</strong> seat(s) but only added <strong id="modal-passenger-count">0</strong> passenger(s).
+                    </p>
+                </div>
+                <div class="modal-footer" style="border: none; justify-content: center; padding: 0 1.5rem 1.5rem;">
+                    <button type="button" class="btn btn-danger" data-dismiss="modal" style="padding: 10px 40px; font-weight: 600; border-radius: 25px;">
+                        Add Passengers
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Initialize fare calculation based on required passengers
+    document.addEventListener('DOMContentLoaded', function() {
+        const requiredPassengers = parseInt(document.getElementById('required-passengers')?.value || 1);
+        const baseFare = parseInt(document.getElementById('basefare')?.value || 0);
+        const fee = parseInt(document.getElementById('fee')?.value || 0);
+        
+        if (requiredPassengers > 0 && baseFare > 0) {
+            const totalBaseFare = baseFare * requiredPassengers;
+            const totalFare = totalBaseFare + fee;
+            
+            // Update base fare display
+            const baseFareSpan = document.querySelector('.base-fare-value span');
+            if (baseFareSpan) {
+                baseFareSpan.innerText = totalBaseFare;
+            }
+            
+            // Update total fare display
+            const totalFareSpan = document.querySelector('.total-fare-value span');
+            if (totalFareSpan) {
+                totalFareSpan.innerText = totalFare;
+            }
+        }
+    });
+    </script>
 {% endblock %}

@@ -68,6 +68,20 @@
   color: #454545;
 }
 
+/* Flight Date Display */
+.flight-date-bar {
+  width: 100%;
+  height: 1px;
+  background: #9f9f9f;
+  margin: 8px auto;
+}
+
+.flight-date {
+  font-size: 0.9em;
+  color: #454545;
+  text-align: center;
+}
+
 .place {
   color: #4a4a4a;
   font-size: 0.8em;
@@ -136,14 +150,14 @@
 }
 
 .seat-map-wrapper {
-  padding: 20px 0;
+  padding: 10px 0 5px;
   background: linear-gradient(
     180deg,
     rgba(220, 53, 69, 0.05) 0%,
     rgba(255, 242, 242, 1) 100%
   );
   border-radius: 12px;
-  margin-top: 13px;
+  margin-top: 8px;
 }
 
 .airplane-visual {
@@ -152,23 +166,23 @@
 }
 
 .cockpit-visual {
-  width: 180px;
-  height: 100px;
+  width: 100px;
+  height: 35px;
   background: white;
   border-radius: 50% 50% 0 0;
-  margin: 0 auto 15px;
+  margin: 0 auto 8px;
   position: relative;
-  box-shadow: inset 0 -8px 15px rgba(0, 0, 0, 0.08);
+  box-shadow: inset 0 -5px 10px rgba(0, 0, 0, 0.08);
 }
 
 .cockpit-visual::before {
   content: "";
   position: absolute;
-  top: 25px;
+  top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  width: 50px;
-  height: 35px;
+  width: 30px;
+  height: 15px;
   background: rgba(0, 0, 0, 0.1);
   border-radius: 50%;
 }
@@ -176,7 +190,7 @@
 .cabin-section {
   background: white;
   border-radius: 10px;
-  padding: 20px 15px;
+  padding: 10px 12px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
 }
 
@@ -231,6 +245,29 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 5px;
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for seat rows */
+.seat-rows-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.seat-rows-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.seat-rows-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #dc3545 0%, #b8017b 100%);
+  border-radius: 3px;
+}
+
+.seat-rows-container::-webkit-scrollbar-thumb:hover {
+  background: #c82333;
 }
 
 .seat-row {
@@ -416,15 +453,39 @@
 .selected-seats-list {
   padding: 13px 0;
   margin: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for selected seats list */
+.selected-seats-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.selected-seats-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.selected-seats-list::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #dc3545 0%, #b8017b 100%);
+  border-radius: 3px;
+}
+
+.selected-seats-list::-webkit-scrollbar-thumb:hover {
+  background: #c82333;
 }
 
 .selected-seat-item {
   display: flex;
   justify-content: space-between;
-  padding: 8px 10px;
-  margin-bottom: 5px;
+  align-items: center;
+  padding: 10px 12px;
+  margin-bottom: 8px;
   background: rgba(220, 53, 69, 0.05);
-  border-radius: 5px;
+  border-radius: 6px;
+  border-left: 3px solid #dc3545;
 }
 
 .seat-number {

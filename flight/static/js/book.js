@@ -100,11 +100,45 @@ function del_traveller(btn) {
 
 function book_submit() {
     let pcount = document.querySelector("#p-count");
-    if(parseInt(pcount.value) > 0) {
-        return true;
+    let requiredPassengers = document.querySelector("#required-passengers");
+    let required = requiredPassengers ? parseInt(requiredPassengers.value) : 1;
+    let current = parseInt(pcount.value);
+    
+    // Check if we have at least one passenger
+    if(current <= 0) {
+        showPassengerValidationModal(required, current);
+        return false;
     }
-    alert("Please add atleast one passenger.")
-    return false;
+    
+    // Check if passenger count matches required seats
+    if(current < required) {
+        showPassengerValidationModal(required, current);
+        return false;
+    }
+    
+    return true;
+}
+
+function showPassengerValidationModal(required, current) {
+    // Update modal message
+    let missing = required - current;
+    let messageEl = document.getElementById('passengerValidationMessage');
+    let seatCountEl = document.getElementById('modal-seat-count');
+    let passengerCountEl = document.getElementById('modal-passenger-count');
+    
+    if (messageEl) {
+        if (current === 0) {
+            messageEl.textContent = `Please add details for ${required} passenger(s) to proceed.`;
+        } else {
+            messageEl.textContent = `Please add ${missing} more passenger(s) to match your seat selection.`;
+        }
+    }
+    
+    if (seatCountEl) seatCountEl.textContent = required;
+    if (passengerCountEl) passengerCountEl.textContent = current;
+    
+    // Show the modal using jQuery (Bootstrap 4)
+    $('#passengerValidationModal').modal('show');
 }
 
 // ===== Coupon Functionality =====
