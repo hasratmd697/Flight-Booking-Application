@@ -1127,6 +1127,7 @@ def seat_selection(request):
 def get_available_seats(request):
     """
     Get available seats for a flight (AJAX endpoint)
+    Now includes DYNAMIC PRICING based on seat occupancy!
     """
     if request.method == 'GET':
         flight_id = request.GET.get('flight_id')
@@ -1143,17 +1144,50 @@ def get_available_seats(request):
                 seat_class=seat_class
             ).order_by('seat_number')
             
+            # ===== DYNAMIC PRICING CALCULATION =====
+            # Calculate current occupancy for this flight
+            total_seats = seats.count()
+            occupied_seats = seats.filter(status__in=['booked', 'reserved']).count()
+            
+            if total_seats > 0:
+                occupancy_rate = occupied_seats / total_seats
+            else:
+                occupancy_rate = 0.0
+            
+            # Import and use dynamic pricing multiplier
+            from flight.dynamic_pricing import get_occupancy_multiplier
+            price_multiplier = get_occupancy_multiplier(occupancy_rate)
+            
+            # Log the dynamic pricing calculation
+            logger.info(f"[DYNAMIC PRICING API] Flight {flight_id}: {occupied_seats}/{total_seats} seats occupied ({occupancy_rate:.1%})")
+            logger.info(f"[DYNAMIC PRICING API] Price multiplier: {price_multiplier}x")
+            # ========================================
+            
             seat_data = []
             for seat in seats:
+                # Apply dynamic pricing multiplier to base price
+                base_price = seat.price
+                dynamic_price = round(base_price * price_multiplier, 2)
+                
                 seat_data.append({
                     'id': seat.id,
                     'number': seat.seat_number,
                     'status': seat.status,
-                    'price': seat.price,
+                    'price': dynamic_price,  # Now returns DYNAMIC price!
+                    'base_price': base_price,  # Also include base price for reference
                     'reserved_until': seat.reserved_until.isoformat() if seat.reserved_until else None
                 })
             
-            return JsonResponse({'success': True, 'seats': seat_data})
+            return JsonResponse({
+                'success': True, 
+                'seats': seat_data,
+                'pricing_info': {
+                    'occupancy_rate': round(occupancy_rate * 100, 1),
+                    'price_multiplier': price_multiplier,
+                    'total_seats': total_seats,
+                    'occupied_seats': occupied_seats
+                }
+            })
         except Flight.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Flight not found'})
     
