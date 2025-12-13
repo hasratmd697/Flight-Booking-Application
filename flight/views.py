@@ -650,6 +650,26 @@ def book(request):
             if f2:
                 flight2 = Flight.objects.get(id=flight_2)
             passengerscount = request.POST['passengersCount']
+            
+            # Server-side validation: Check passenger count matches seat selection
+            selected_seat_ids = request.POST.getlist('selected_seats')
+            if selected_seat_ids:
+                # For round trips, seats are selected for both flights
+                if f2:
+                    required_passengers = max(1, len(selected_seat_ids) // 2)
+                else:
+                    required_passengers = len(selected_seat_ids)
+                
+                passenger_count = int(passengerscount) if passengerscount else 0
+                
+                if passenger_count != required_passengers:
+                    # Return error with proper context for re-rendering book page
+                    return render(request, 'flight/error.html', {
+                        'error_title': 'Passenger Count Mismatch',
+                        'error_message': f'You selected {required_passengers} seat(s) but provided details for {passenger_count} passenger(s). '
+                                        f'Please go back and ensure the number of passengers matches your seat selection.',
+                        'show_back': True
+                    })
             passengers=[]
             for i in range(1,int(passengerscount)+1):
                 fname = request.POST[f'passenger{i}FName']
