@@ -352,8 +352,8 @@
 }
 
 .seat.premium {
-  background: linear-gradient(180deg, #6f42c1 0%, #5a32a3 100%);
-  border-color: #6f42c1;
+  background: linear-gradient(180deg, #ffc107 0%, #e0a800 100%);
+  border-color: #ffc107;
 }
 
 /* =========================
