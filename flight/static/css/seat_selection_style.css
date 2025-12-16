@@ -394,9 +394,14 @@
   border-color: #adb5bd;
 }
 
-.legend-seat.premium {
-  background: linear-gradient(180deg, #6f42c1 0%, #5a32a3 100%);
-  border-color: #6f42c1;
+.legend-seat.confirmed {
+  background: linear-gradient(180deg, #6c757d 0%, #545b62 100%);
+  border-color: #6c757d;
+}
+
+.legend-seat.temporarily-booked {
+  background: linear-gradient(180deg, #ffc107 0%, #e0a800 100%);
+  border-color: #ffc107;
 }
 
 .legend-item span {

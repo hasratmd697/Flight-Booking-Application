@@ -91,7 +91,7 @@ def demonstrate_dynamic_pricing():
     price_history = []
     
     # Reserve seats in batches
-    batches = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130]
+    batches = [20, 40, 60, 80, 100, 120, 140]
     
     for batch_target in batches:
         if batch_target > len(available_seats):
