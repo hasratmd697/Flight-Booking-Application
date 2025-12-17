@@ -364,6 +364,7 @@
   flex-wrap: wrap;
   gap: 15px;
   padding: 13px 0 0;
+  justify-content: center;
 }
 
 .legend-item {
@@ -392,11 +393,6 @@
 .legend-seat.booked {
   background: linear-gradient(180deg, #e9ecef 0%, #ced4da 100%);
   border-color: #adb5bd;
-}
-
-.legend-seat.confirmed {
-  background: linear-gradient(180deg, #6c757d 0%, #545b62 100%);
-  border-color: #6c757d;
 }
 
 .legend-seat.temporarily-booked {
