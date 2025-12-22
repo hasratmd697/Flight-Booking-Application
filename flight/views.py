@@ -827,15 +827,30 @@ def payment(request):
                     
                     # Send confirmation email in background (non-blocking to prevent timeout)
                     import threading
-                    def send_email_async():
-                        try:
-                            send_ticket_email(ticket, ticket2)
-                            print(f"[EMAIL] Confirmation email sent successfully")
-                        except Exception as e:
-                            print(f"[EMAIL] Failed to send email: {e}")
+                    from django.conf import settings as django_settings
                     
-                    email_thread = threading.Thread(target=send_email_async)
+                    print(f"[EMAIL] Preparing to send email for tickets {ticket.ref_no} and {ticket2.ref_no}")
+                    
+                    def send_email_worker(t1, t2, email_addr):
+                        try:
+                            print(f"[EMAIL] Thread started - sending to {email_addr}")
+                            print(f"[EMAIL] SendGrid configured: {bool(django_settings.SENDGRID_API_KEY)}")
+                            print(f"[EMAIL] Email backend: {django_settings.EMAIL_BACKEND}")
+                            result = send_ticket_email(t1, t2)
+                            print(f"[EMAIL] Email send result: {result}")
+                        except Exception as e:
+                            import traceback
+                            print(f"[EMAIL] Failed to send email: {e}")
+                            print(f"[EMAIL] Traceback: {traceback.format_exc()}")
+                    
+                    # Pass ticket objects explicitly to avoid closure issues
+                    email_thread = threading.Thread(
+                        target=send_email_worker, 
+                        args=(ticket, ticket2, ticket.email),
+                        daemon=False
+                    )
                     email_thread.start()
+                    print(f"[EMAIL] Background email thread started")
                     
                     return render(request, 'flight/payment_process.html', {
                         'ticket1': ticket,
@@ -847,15 +862,30 @@ def payment(request):
                 
                 # Send confirmation email in background (non-blocking) for one-way trip
                 import threading
-                def send_email_async():
-                    try:
-                        send_ticket_email(ticket)
-                        print(f"[EMAIL] Confirmation email sent successfully")
-                    except Exception as e:
-                        print(f"[EMAIL] Failed to send email: {e}")
+                from django.conf import settings as django_settings
                 
-                email_thread = threading.Thread(target=send_email_async)
+                print(f"[EMAIL] Preparing to send email for ticket {ticket.ref_no}")
+                
+                def send_email_worker(t1, email_addr):
+                    try:
+                        print(f"[EMAIL] Thread started - sending to {email_addr}")
+                        print(f"[EMAIL] SendGrid configured: {bool(django_settings.SENDGRID_API_KEY)}")
+                        print(f"[EMAIL] Email backend: {django_settings.EMAIL_BACKEND}")
+                        result = send_ticket_email(t1)
+                        print(f"[EMAIL] Email send result: {result}")
+                    except Exception as e:
+                        import traceback
+                        print(f"[EMAIL] Failed to send email: {e}")
+                        print(f"[EMAIL] Traceback: {traceback.format_exc()}")
+                
+                # Pass ticket object explicitly to avoid closure issues
+                email_thread = threading.Thread(
+                    target=send_email_worker, 
+                    args=(ticket, ticket.email),
+                    daemon=False
+                )
                 email_thread.start()
+                print(f"[EMAIL] Background email thread started")
                 
                 return render(request, 'flight/payment_process.html', {
                     'ticket1': ticket,
