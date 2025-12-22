@@ -24,12 +24,19 @@ def send_ticket_email(ticket1, ticket2=None):
     Returns:
         bool: True if email sent successfully, False otherwise
     """
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    
     try:
         # Get recipient email from ticket
         recipient_email = ticket1.email
         if not recipient_email:
+            print(f"[EMAIL] No email address for ticket {ticket1.ref_no}")
             logger.warning(f"No email address for ticket {ticket1.ref_no}")
             return False
+        
+        print(f"[EMAIL] Building email for {recipient_email}")
         
         # Prepare context for email template
         context = {
@@ -46,26 +53,54 @@ def send_ticket_email(ticket1, ticket2=None):
         
         # Create email subject
         if ticket2:
-            subject = f"✈️ Flight Booking Confirmed - {ticket1.flight.origin.code} ⇄ {ticket1.flight.destination.code} | Ref: {ticket1.ref_no}"
+            subject = f"Flight Booking Confirmed - {ticket1.flight.origin.code} to {ticket1.flight.destination.code} | Ref: {ticket1.ref_no}"
         else:
-            subject = f"✈️ Flight Booking Confirmed - {ticket1.flight.origin.code} → {ticket1.flight.destination.code} | Ref: {ticket1.ref_no}"
+            subject = f"Flight Booking Confirmed - {ticket1.flight.origin.code} to {ticket1.flight.destination.code} | Ref: {ticket1.ref_no}"
         
-        # Create email with HTML and plain text alternatives
-        email = EmailMultiAlternatives(
-            subject=subject,
-            body=text_content,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[recipient_email],
-        )
-        email.attach_alternative(html_content, "text/html")
+        print(f"[EMAIL] Subject: {subject}")
         
-        # Send the email
-        email.send(fail_silently=False)
+        # Check if SendGrid is configured
+        sendgrid_key = settings.SENDGRID_API_KEY if hasattr(settings, 'SENDGRID_API_KEY') else None
         
+        if not sendgrid_key:
+            print(f"[EMAIL] ERROR: SENDGRID_API_KEY not configured!")
+            logger.error("SENDGRID_API_KEY is not configured")
+            return False
+        
+        print(f"[EMAIL] Using SMTP with timeout=10s")
+        
+        # Create message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = settings.DEFAULT_FROM_EMAIL
+        msg['To'] = recipient_email
+        
+        # Attach plain text and HTML
+        msg.attach(MIMEText(text_content, 'plain'))
+        msg.attach(MIMEText(html_content, 'html'))
+        
+        # Connect to SendGrid with explicit timeout
+        print(f"[EMAIL] Connecting to smtp.sendgrid.net:587...")
+        server = smtplib.SMTP('smtp.sendgrid.net', 587, timeout=10)
+        server.starttls()
+        print(f"[EMAIL] TLS started, authenticating...")
+        server.login('apikey', sendgrid_key)
+        print(f"[EMAIL] Authenticated, sending message...")
+        server.sendmail(settings.DEFAULT_FROM_EMAIL, [recipient_email], msg.as_string())
+        server.quit()
+        
+        print(f"[EMAIL] SUCCESS: Email sent to {recipient_email}")
         logger.info(f"Booking confirmation email sent to {recipient_email} for ticket {ticket1.ref_no}")
         return True
         
+    except smtplib.SMTPException as e:
+        print(f"[EMAIL] SMTP ERROR: {str(e)}")
+        logger.error(f"SMTP error sending email for ticket {ticket1.ref_no}: {str(e)}")
+        return False
     except Exception as e:
+        print(f"[EMAIL] ERROR: {str(e)}")
+        import traceback
+        print(f"[EMAIL] Traceback: {traceback.format_exc()}")
         logger.error(f"Failed to send email for ticket {ticket1.ref_no}: {str(e)}")
         return False
 
