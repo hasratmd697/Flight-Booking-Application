@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 
 from pathlib import Path
 import os
+import dj_database_url
 
 # Load environment variables from .env file
 from dotenv import load_dotenv
@@ -20,8 +21,9 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Detect if running on Google App Engine
+# Detect deployment platform
 IS_GAE = os.environ.get('GAE_APPLICATION', None) is not None
+IS_RENDER = os.environ.get('RENDER', None) is not None
 
 # Amadeus Flight API Configuration
 AMADEUS_CLIENT_ID = os.environ.get('API_Key', '')
@@ -36,18 +38,21 @@ AMADEUS_ENABLED = os.environ.get('AMADEUS_ENABLED', 'true').lower() == 'true'
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '=k3z-^1ov_hy5y%ebw(2e-npk@$#!(c8ix=+7so*hmw9m0c52*')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = not IS_GAE
+DEBUG = not (IS_GAE or IS_RENDER)
 
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
     '.appspot.com',  # Google App Engine
     '.run.app',      # Cloud Run
+    '.onrender.com', # Render
 ]
 
-# Add CSRF trusted origins for GAE
+# Add CSRF trusted origins for production platforms
 if IS_GAE:
     CSRF_TRUSTED_ORIGINS = ['https://*.appspot.com']
+elif IS_RENDER:
+    CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -104,6 +109,15 @@ if IS_GAE:
             'PASSWORD': 'FlightApp2025!',
             'HOST': '/cloudsql/flight-app-2025:asia-south1:flight-db',
         }
+    }
+elif IS_RENDER:
+    # Render PostgreSQL via DATABASE_URL
+    DATABASES = {
+        'default': dj_database_url.config(
+            default='sqlite:///db.sqlite3',
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
 else:
     # Local development uses file-based SQLite
