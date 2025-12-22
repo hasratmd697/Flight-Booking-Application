@@ -35,9 +35,37 @@ def createticket(user,passengers,passengerscount,flight1,flight_1date,flight_1cl
     for passenger in passengers:
         ticket.passengers.add(passenger)
     ticket.flight = flight1
-    ticket.flight_ddate = datetime(int(flight_1date.split('-')[2]),int(flight_1date.split('-')[1]),int(flight_1date.split('-')[0]))
+    
+    # Robust date parsing - handle multiple formats
+    def parse_date(date_str):
+        """Parse date string in either DD-MM-YYYY or YYYY-MM-DD format"""
+        if not date_str:
+            return datetime.now()
+        
+        date_str = str(date_str).strip()
+        
+        # Try DD-MM-YYYY format first (expected from form)
+        if len(date_str.split('-')) == 3:
+            parts = date_str.split('-')
+            # Check if first part is 4 digits (YYYY-MM-DD format)
+            if len(parts[0]) == 4:
+                # YYYY-MM-DD format
+                return datetime(int(parts[0]), int(parts[1]), int(parts[2]))
+            else:
+                # DD-MM-YYYY format
+                return datetime(int(parts[2]), int(parts[1]), int(parts[0]))
+        
+        # Fallback to datetime parsing
+        try:
+            from dateutil import parser as date_parser
+            return date_parser.parse(date_str)
+        except:
+            return datetime.now()
+    
+    flight_date = parse_date(flight_1date)
+    ticket.flight_ddate = flight_date
     ###################
-    flight1ddate = datetime(int(flight_1date.split('-')[2]),int(flight_1date.split('-')[1]),int(flight_1date.split('-')[0]),flight1.depart_time.hour,flight1.depart_time.minute)
+    flight1ddate = datetime(flight_date.year, flight_date.month, flight_date.day, flight1.depart_time.hour, flight1.depart_time.minute)
     flight1adate = (flight1ddate + flight1.duration)
     ###################
     ticket.flight_adate = datetime(flight1adate.year,flight1adate.month,flight1adate.day)
