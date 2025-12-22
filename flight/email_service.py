@@ -1,10 +1,9 @@
 """
 Email Service Module
 ====================
-Handles sending booking confirmation emails using SendGrid.
+Handles sending booking confirmation emails using SendGrid Web API.
 """
 
-from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils.html import strip_tags
@@ -15,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def send_ticket_email(ticket1, ticket2=None):
     """
-    Send booking confirmation email to the user.
+    Send booking confirmation email to the user using SendGrid Web API.
     
     Args:
         ticket1: Primary ticket object (required)
@@ -24,9 +23,8 @@ def send_ticket_email(ticket1, ticket2=None):
     Returns:
         bool: True if email sent successfully, False otherwise
     """
-    import smtplib
-    from email.mime.text import MIMEText
-    from email.mime.multipart import MIMEMultipart
+    import http.client
+    import json
     
     try:
         # Get recipient email from ticket
@@ -60,43 +58,68 @@ def send_ticket_email(ticket1, ticket2=None):
         print(f"[EMAIL] Subject: {subject}")
         
         # Check if SendGrid is configured
-        sendgrid_key = settings.SENDGRID_API_KEY if hasattr(settings, 'SENDGRID_API_KEY') else None
+        sendgrid_key = getattr(settings, 'SENDGRID_API_KEY', None)
         
         if not sendgrid_key:
             print(f"[EMAIL] ERROR: SENDGRID_API_KEY not configured!")
             logger.error("SENDGRID_API_KEY is not configured")
             return False
         
-        print(f"[EMAIL] Using SMTP with timeout=10s")
+        print(f"[EMAIL] Using SendGrid Web API (HTTPS)")
         
-        # Create message
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = settings.DEFAULT_FROM_EMAIL
-        msg['To'] = recipient_email
+        # Prepare SendGrid API request
+        from_email = settings.DEFAULT_FROM_EMAIL
+        # Extract just the email address if it's in "Name <email>" format
+        if '<' in from_email and '>' in from_email:
+            from_name = from_email.split('<')[0].strip()
+            from_addr = from_email.split('<')[1].replace('>', '').strip()
+        else:
+            from_name = "Flight Bookings"
+            from_addr = from_email
         
-        # Attach plain text and HTML
-        msg.attach(MIMEText(text_content, 'plain'))
-        msg.attach(MIMEText(html_content, 'html'))
+        payload = {
+            "personalizations": [
+                {
+                    "to": [{"email": recipient_email}],
+                    "subject": subject
+                }
+            ],
+            "from": {
+                "email": from_addr,
+                "name": from_name
+            },
+            "content": [
+                {"type": "text/plain", "value": text_content},
+                {"type": "text/html", "value": html_content}
+            ]
+        }
         
-        # Connect to SendGrid with explicit timeout
-        print(f"[EMAIL] Connecting to smtp.sendgrid.net:587...")
-        server = smtplib.SMTP('smtp.sendgrid.net', 587, timeout=10)
-        server.starttls()
-        print(f"[EMAIL] TLS started, authenticating...")
-        server.login('apikey', sendgrid_key)
-        print(f"[EMAIL] Authenticated, sending message...")
-        server.sendmail(settings.DEFAULT_FROM_EMAIL, [recipient_email], msg.as_string())
-        server.quit()
+        # Send via SendGrid Web API
+        print(f"[EMAIL] Sending via api.sendgrid.com...")
         
-        print(f"[EMAIL] SUCCESS: Email sent to {recipient_email}")
-        logger.info(f"Booking confirmation email sent to {recipient_email} for ticket {ticket1.ref_no}")
-        return True
+        conn = http.client.HTTPSConnection("api.sendgrid.com", timeout=15)
+        headers = {
+            "Authorization": f"Bearer {sendgrid_key}",
+            "Content-Type": "application/json"
+        }
         
-    except smtplib.SMTPException as e:
-        print(f"[EMAIL] SMTP ERROR: {str(e)}")
-        logger.error(f"SMTP error sending email for ticket {ticket1.ref_no}: {str(e)}")
-        return False
+        conn.request("POST", "/v3/mail/send", json.dumps(payload), headers)
+        response = conn.getresponse()
+        status = response.status
+        body = response.read().decode('utf-8')
+        conn.close()
+        
+        print(f"[EMAIL] SendGrid response: {status}")
+        
+        if status in (200, 201, 202):
+            print(f"[EMAIL] SUCCESS: Email sent to {recipient_email}")
+            logger.info(f"Booking confirmation email sent to {recipient_email} for ticket {ticket1.ref_no}")
+            return True
+        else:
+            print(f"[EMAIL] FAILED: Status {status}, Body: {body}")
+            logger.error(f"SendGrid API error for ticket {ticket1.ref_no}: {status} - {body}")
+            return False
+        
     except Exception as e:
         print(f"[EMAIL] ERROR: {str(e)}")
         import traceback
