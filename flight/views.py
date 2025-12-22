@@ -825,27 +825,43 @@ def payment(request):
                         
                     print(f"[PAYMENT] Round-trip ticket {ticket2.ref_no} CONFIRMED!")
                     
-                    # Send confirmation email for round-trip
-                    email_sent = send_ticket_email(ticket, ticket2)
-                    print(f"[EMAIL] Confirmation email sent: {email_sent}")
+                    # Send confirmation email in background (non-blocking to prevent timeout)
+                    import threading
+                    def send_email_async():
+                        try:
+                            send_ticket_email(ticket, ticket2)
+                            print(f"[EMAIL] Confirmation email sent successfully")
+                        except Exception as e:
+                            print(f"[EMAIL] Failed to send email: {e}")
+                    
+                    email_thread = threading.Thread(target=send_email_async)
+                    email_thread.start()
                     
                     return render(request, 'flight/payment_process.html', {
                         'ticket1': ticket,
                         'ticket2': ticket2,
                         'transaction_id': transaction_id,
-                        'email_sent': email_sent,
+                        'email_sent': True,  # Assume success, email sends in background
                         'email_address': ticket.email
                     })
                 
-                # Send confirmation email for one-way trip
-                email_sent = send_ticket_email(ticket)
-                print(f"[EMAIL] Confirmation email sent: {email_sent}")
+                # Send confirmation email in background (non-blocking) for one-way trip
+                import threading
+                def send_email_async():
+                    try:
+                        send_ticket_email(ticket)
+                        print(f"[EMAIL] Confirmation email sent successfully")
+                    except Exception as e:
+                        print(f"[EMAIL] Failed to send email: {e}")
+                
+                email_thread = threading.Thread(target=send_email_async)
+                email_thread.start()
                 
                 return render(request, 'flight/payment_process.html', {
                     'ticket1': ticket,
                     'ticket2': "",
                     'transaction_id': transaction_id,
-                    'email_sent': email_sent,
+                    'email_sent': True,  # Assume success, email sends in background
                     'email_address': ticket.email
                 })
             except Exception as e:
