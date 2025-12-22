@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 
 from pathlib import Path
 import os
-import dj_database_url
+from urllib.parse import urlparse
 
 # Load environment variables from .env file
 from dotenv import load_dotenv
@@ -111,14 +111,28 @@ if IS_GAE:
         }
     }
 elif IS_RENDER:
-    # Render PostgreSQL via DATABASE_URL
-    DATABASES = {
-        'default': dj_database_url.config(
-            default='sqlite:///db.sqlite3',
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
-    }
+    # Render PostgreSQL via DATABASE_URL (manual parsing for Django 3.1 compatibility)
+    DATABASE_URL = os.environ.get('DATABASE_URL', '')
+    if DATABASE_URL:
+        db_url = urlparse(DATABASE_URL)
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': db_url.path[1:],  # Remove leading slash
+                'USER': db_url.username,
+                'PASSWORD': db_url.password,
+                'HOST': db_url.hostname,
+                'PORT': db_url.port or 5432,
+            }
+        }
+    else:
+        # Fallback to SQLite if no DATABASE_URL
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
 else:
     # Local development uses file-based SQLite
     DATABASES = {
