@@ -61,7 +61,6 @@ Prices automatically adjust based on demand and booking timing:
 **Example:** ₹5,000 ticket | 90% seats full | 1 day before departure  
 `₹5,000 × 1.50 × 1.30 = ₹9,750`
 
-
 ### 👤 User Management
 
 - **Registration & Login** - Secure authentication system
@@ -70,13 +69,13 @@ Prices automatically adjust based on demand and booking timing:
 
 ## 🛠️ Technology Stack
 
-| Category       | Technology                      |
-| -------------- | ------------------------------- |
-| Backend        | Python 3.8+, Django 3.1.2       |
-| Frontend       | HTML5, CSS3, JavaScript         |
-| Database       | SQLite (dev), PostgreSQL (prod) |
-| API            | Amadeus Flight Offers API       |
-| Deployment     | Google Cloud App Engine         |
+| Category   | Technology                           |
+| ---------- | ------------------------------------ |
+| Backend    | Python 3.8+, Django 3.1.2            |
+| Frontend   | HTML5, CSS3, JavaScript              |
+| Database   | SQLite (dev), Neon PostgreSQL (prod) |
+| API        | Amadeus Flight Offers API            |
+| Deployment | Render                               |
 
 ## 🚀 Quick Start
 
@@ -165,12 +164,10 @@ DEBUG=True
 Search for flights with origin, destination, dates, and class selection.
 <img width="1919" height="939" alt="Screenshot 2025-12-11 185534" src="https://github.com/user-attachments/assets/009bda7a-aef0-47b1-9656-1329c536466a" />
 
-
 ### Search Results
 
 View available flights with prices, times, and duration.
 <img width="1920" height="938" alt="Screenshot 2025-12-12 122036" src="https://github.com/user-attachments/assets/259efe07-2d8d-4d74-9d25-72d1fad020af" />
-
 
 ### Seat Selection
 
@@ -178,16 +175,14 @@ Interactive seat map with real-time availability.
 <img width="1920" height="940" alt="Screenshot 2025-12-12 122156" src="https://github.com/user-attachments/assets/2c2f023d-423d-4d67-b7cd-1b4320303dba" />
 <img width="1920" height="936" alt="Screenshot 2025-12-12 122256" src="https://github.com/user-attachments/assets/99200440-14bc-44a7-9f92-a9021c3edabc" />
 
-
 ### Payment
 
 Secure checkout with coupon support.
 <img width="1920" height="940" alt="Screenshot 2025-12-12 122434" src="https://github.com/user-attachments/assets/1d057aaf-334c-4d39-8db8-8d5f2eedb367" />
 
-
 ## 🌐 Live Demo
 
-**Production URL:** https://flight-app-2025.el.r.appspot.com
+**Production URL:** https://flight-booking-app.onrender.com
 
 ## 🤝 Contributing
 
@@ -199,6 +194,7 @@ Secure checkout with coupon support.
 
 ## 📝 Recent Updates
 
+- ✅ **Neon PostgreSQL Migration** - Persistent database with generous free tier
 - ✅ **Amadeus API Integration** - Live flight search
 - ✅ **Round-trip Seat Selection** - Select seats for both legs
 - ✅ **Coupon System** - Bank card discounts (HDFC, ICICI, SBI)

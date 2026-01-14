@@ -123,6 +123,9 @@ elif IS_RENDER:
                 'PASSWORD': db_url.password,
                 'HOST': db_url.hostname,
                 'PORT': db_url.port or 5432,
+                'OPTIONS': {
+                    'sslmode': 'require',  # Required for Neon PostgreSQL
+                },
             }
         }
     else:
